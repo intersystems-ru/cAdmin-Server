@@ -1,0 +1,103 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Export generator="Cache" version="25">
+<Class name="cAdmin.WebSocket">
+<Super>%CSP.WebSocket</Super>
+<TimeCreated>63236,45246.272996</TimeCreated>
+
+<Property name="Sensors">
+<Type>SYS.Monitor.SystemSensors</Type>
+</Property>
+
+<Method name="OnPreServer">
+<ReturnType>%Status</ReturnType>
+<Implementation><![CDATA[   Quit $$$OK
+]]></Implementation>
+</Method>
+
+<Method name="Server">
+<ReturnType>%Status</ReturnType>
+<Implementation><![CDATA[
+   Set timeout=3600
+   For  {
+      Set len=32656
+      Set data=..Read(.len, .status, timeout)
+      If $$$ISERR(status) {
+	If $$$GETERRORCODE(status) = $$$CSPWebSocketClosed {
+		Quit
+	}
+	If $$$GETERRORCODE(status) = $$$CSPWebSocketTimeout {
+               Set status=..Write("Server timed-out at "_$Horolog)
+         }
+      }
+      else {
+         do ..InitSensors()
+         //Set status=..Write(data_" from server")
+         do ..ChooseAction(data)
+      }
+   }
+   Set status=..EndServer()
+   Quit $$$OK
+]]></Implementation>
+</Method>
+
+<Method name="ChooseAction">
+<FormalSpec>data:%String</FormalSpec>
+<ReturnType>%Status</ReturnType>
+<Implementation><![CDATA[
+	If data="exit" {do ..EndServer()}
+	ElseIf data="test" {do ..TestLoop()}
+	ElseIf data="CPU" {do ..Write(..GetCPU())}
+	Else { 
+		do ..Write(data_" from server")
+	}
+   	Quit $$$OK
+]]></Implementation>
+</Method>
+
+<Method name="InitSensors">
+<ReturnType>%Status</ReturnType>
+<Implementation><![CDATA[
+	set st=$$$OK
+	try	{
+		if ('..Sensors) { 
+			set ..Sensors=##class(SYS.Monitor.SystemSensors).%New()
+			do ..Sensors.GetSensors()
+		}
+	} catch ex {
+		set st=ex.AsStatus()
+	}
+	Quit st
+]]></Implementation>
+</Method>
+
+<Method name="GetCPU">
+<ReturnType>%Integer</ReturnType>
+<Implementation><![CDATA[
+	do ..Sensors.GetCPU()	
+   	Quit ..Sensors.SensorReading("CPUusage")
+]]></Implementation>
+</Method>
+
+<Method name="OnPostServer">
+<ReturnType>%Status</ReturnType>
+<Implementation><![CDATA[   Quit $$$OK
+]]></Implementation>
+</Method>
+
+<Method name="TestLoop">
+<ReturnType>%Status</ReturnType>
+<Implementation><![CDATA[
+	//
+	while (1) {
+		//set test=$g(^test("test"),"0")
+		if ^test("test")'="0" 
+		{
+			do ..Write(^test("test"))
+		}
+		hang 10
+	}
+	quit $$$OK
+]]></Implementation>
+</Method>
+</Class>
+</Export>
