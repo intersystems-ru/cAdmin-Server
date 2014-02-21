@@ -1,42 +1,67 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <Export generator="Cache" version="25">
 <Class name="cAdmin.WebSocket">
+<IncludeCode>%ZEN.Utils</IncludeCode>
 <Super>%CSP.WebSocket</Super>
-<TimeCreated>63236,45246.272996</TimeCreated>
+<TimeCreated>63239,56119.715969</TimeCreated>
 
 <Property name="Sensors">
 <Type>SYS.Monitor.SystemSensors</Type>
 </Property>
 
+<Property name="SystemStartUp">
+<Type>%String</Type>
+</Property>
+
+<Parameter name="authorizationTimeout">
+<Description>
+How long to wait for authorization key when connection established</Description>
+<Default>5</Default>
+</Parameter>
+
+<Parameter name="Timeout">
+<Description>
+How long to wait for user when connection established</Description>
+<Default>3600</Default>
+</Parameter>
+
 <Method name="OnPreServer">
 <ReturnType>%Status</ReturnType>
-<Implementation><![CDATA[   Quit $$$OK
+<Implementation><![CDATA[
+	//set ..SharedConnection=1
+	Quit $$$OK
 ]]></Implementation>
 </Method>
 
 <Method name="Server">
 <ReturnType>%Status</ReturnType>
 <Implementation><![CDATA[
-   Set timeout=3600
-   For  {
-      Set len=32656
-      Set data=..Read(.len, .status, timeout)
-      If $$$ISERR(status) {
-	If $$$GETERRORCODE(status) = $$$CSPWebSocketClosed {
-		Quit
+	if ($$$ISOK(..RequireAuthorization() && $$$ISOK(..RequireResource()))) 
+	{		
+   		For  
+   		{
+      		Set data=..Read(, .status, ..#Timeout)
+			If $$$ISERR(status) 
+			{
+				If $$$GETERRORCODE(status) = $$$CSPWebSocketClosed 
+				{
+					Quit
+				}
+				If $$$GETERRORCODE(status) = $$$CSPWebSocketTimeout 
+				{
+     	   	     	Set status=..Write("Server timed-out at "_$Horolog)
+     	   		}
+      		} else 
+      		{
+         		do ..InitSensors()
+     		    //Set status=..Write(data_" from server")
+     		    do ..ChooseAction(data)
+     	 	}
+   		}	
+	} else {
+		Set status=..EndServer()
+   		Quit $$$OK					
 	}
-	If $$$GETERRORCODE(status) = $$$CSPWebSocketTimeout {
-               Set status=..Write("Server timed-out at "_$Horolog)
-         }
-      }
-      else {
-         do ..InitSensors()
-         //Set status=..Write(data_" from server")
-         do ..ChooseAction(data)
-      }
-   }
-   Set status=..EndServer()
-   Quit $$$OK
 ]]></Implementation>
 </Method>
 
@@ -44,9 +69,13 @@
 <FormalSpec>data:%String</FormalSpec>
 <ReturnType>%Status</ReturnType>
 <Implementation><![CDATA[
-	If data="exit" {do ..EndServer()}
-	ElseIf data="test" {do ..TestLoop()}
-	ElseIf data="CPU" {do ..Write(..GetCPU())}
+	set action=$p(data,":",1) 
+	set params=$p(data,":",2)
+	If action="exit" {do ..EndServer()}
+	ElseIf action="test" {do ..TestLoop()}
+	ElseIf action="DB" {do ..DBStats()}
+	ElseIf action="sensors" {do ..Sensors(params)}
+	ElseIf action="process" {do ..Process(params)}
 	Else { 
 		do ..Write(data_" from server")
 	}
@@ -62,6 +91,7 @@
 		if ('..Sensors) { 
 			set ..Sensors=##class(SYS.Monitor.SystemSensors).%New()
 			do ..Sensors.GetSensors()
+			set ..SystemStartUp=$h-..Sensors.SystemTime
 		}
 	} catch ex {
 		set st=ex.AsStatus()
@@ -70,11 +100,140 @@
 ]]></Implementation>
 </Method>
 
+<Method name="Sensors">
+<FormalSpec>sensorslist:%String</FormalSpec>
+<ReturnType>%Status</ReturnType>
+<Implementation><![CDATA[
+	set sensors=$listfromstring(sensorslist,",")
+	for i=1:1:$LISTLENGTH(sensors) 
+	{
+		try {
+			set value=$METHOD($THIS,"Get"_$list(sensors,i))
+		} catch ex {
+			set value="NaN"
+		}
+		set $list(values,i)=value
+	}
+	set JSON=##class(%ZEN.Auxiliary.jsonProvider).%ArrayToJSON(.sensors,.values)
+    do ..Write($e(JSON,1,*-1)) // no need to write status
+    quit $$$OK
+]]></Implementation>
+</Method>
+
+<Method name="Process">
+<FormalSpec>args:%String</FormalSpec>
+<ReturnType>%Status</ReturnType>
+<Implementation><![CDATA[
+	if args="List" {
+		do ..Write(##class(cAdmin.data.Process).ListProcess())
+	} else {
+		do $CLASSMETHOD("cAdmin.data.Process",$p(args,",",1)_"Process",$p(args,",",2,*))
+	}
+    quit $$$OK
+]]></Implementation>
+</Method>
+
+<Method name="GetRandomNumber">
+<ReturnType>%Integer</ReturnType>
+<Implementation><![CDATA[   	quit $RANDOM(100)
+]]></Implementation>
+</Method>
+
 <Method name="GetCPU">
 <ReturnType>%Integer</ReturnType>
 <Implementation><![CDATA[
 	do ..Sensors.GetCPU()	
    	Quit ..Sensors.SensorReading("CPUusage")
+]]></Implementation>
+</Method>
+
+<Method name="GetLockTable">
+<ReturnType>%Numeric</ReturnType>
+<Implementation><![CDATA[
+	do ..Sensors.GetLockTable()	
+   	quit ..Sensors.SensorReading("LockTablePercentFull")
+]]></Implementation>
+</Method>
+
+<Method name="GetCSPGatewayLatency">
+<ReturnType>%Numeric</ReturnType>
+<Implementation><![CDATA[
+	do ..Sensors.GetCSPGateway()	
+   	quit ..Sensors.SensorReading("CSPGatewayLatency",$o(..Sensors.SensorReading("CSPGatewayLatency","")))
+]]></Implementation>
+</Method>
+
+<Method name="GetSMH">
+<ReturnType>%Integer</ReturnType>
+<Implementation><![CDATA[
+	do ..Sensors.GetSMH()
+	quit ..Sensors.SensorReading("SMHPercentFull")
+]]></Implementation>
+</Method>
+
+<Method name="GetIncrement">
+<ReturnType>%Integer</ReturnType>
+<Implementation><![CDATA[
+   	set ^test("HDD")=($g(^test("HDD"),"50")+$RANDOM(4)) # 100
+   	quit $g(^test("HDD"),"50")
+]]></Implementation>
+</Method>
+
+<Method name="GetJournalSpace">
+<ReturnType>%Numeric</ReturnType>
+<Implementation><![CDATA[
+	do ..Sensors.GetJournalSpace()	
+   	Quit ..Sensors.SensorReading("JournalSpace")
+]]></Implementation>
+</Method>
+
+<Method name="GetUptime">
+<ReturnType>%Integer</ReturnType>
+<Implementation><![CDATA[	quit $h-..SystemStartUp
+]]></Implementation>
+</Method>
+
+<Method name="GetLicenseStatus">
+<Description>
+Valid, Invalid, or Troubled (expiring). </Description>
+<ReturnType>%String</ReturnType>
+<Implementation><![CDATA[	quit ##class(%SYSTEM.License).GetKeyStatus()
+]]></Implementation>
+</Method>
+
+<Method name="GetLicenseExpirationDate">
+<ReturnType>%String</ReturnType>
+<Implementation><![CDATA[	quit $zdate($SYSTEM.License.KeyExpirationDate())
+]]></Implementation>
+</Method>
+
+<Method name="GetLicenseInvalidReason">
+<ReturnType>%String</ReturnType>
+<Implementation><![CDATA[	quit $SYSTEM.License.GetKeyInvalidReason()
+]]></Implementation>
+</Method>
+
+<Method name="DBStats">
+<ReturnType>%Status</ReturnType>
+<Implementation><![CDATA[
+	do ..Sensors.GetDBStats()
+	set DBs=##class(cAdmin.data.Databases).%New()
+	set DBPath=$o(..Sensors.DBStats(""))
+	while DBPath'="" {
+		set DB=##class(cAdmin.data.Database).%New()
+		set DB.Path=DBPath
+		set DB.DirectorySpace=..Sensors.SensorReading("DirectorySpace",DBPath)
+		set DB.DBWrites=..Sensors.SensorReading("DBWrites",DBPath)
+		set DB.DBReads=..Sensors.SensorReading("DBReads",DBPath)
+		set DB.DBLatency=..Sensors.SensorReading("DBLatency",DBPath)
+		set DB.DBStats=..Sensors.DBStats(DBPath)
+	
+		do DBs.Databases.Insert(DB)
+		set DBPath=$o(..Sensors.DBStats(DBPath))
+	}
+	do ..Write(##class(%ZEN.Auxiliary.jsonProvider).%WriteJSONFromObject(,DBs,,,,"aeloqtuw"))
+
+	Quit $$$OK
 ]]></Implementation>
 </Method>
 
@@ -92,11 +251,49 @@
 		//set test=$g(^test("test"),"0")
 		if ^test("test")'="0" 
 		{
-			do ..Write(^test("test"))
+			do ..Write("{ ""alert"" : """_^test("test")_""" }")
 		}
 		hang 10
 	}
 	quit $$$OK
+]]></Implementation>
+</Method>
+
+<Method name="RequireAuthorization">
+<Description>
+This method holds process and expects only one package from
+the client - it includes authorization key.</Description>
+<ReturnType>%Status</ReturnType>
+<Implementation><![CDATA[
+	set authPair = ..Read(,.status,..#authorizationTimeout) // wait for package
+	set st = '$$$OK
+	set obj = ##class(%ZEN.proxyObject).%New()
+	set st = ##class(%ZEN.Auxiliary.jsonProvider).%ConvertJSONToObject(authPair,,.obj,1)
+	quit:$$$ISERR(st) st
+	set loginStatus = ##class(%SYSTEM.Security).Login(obj.User,obj.Password) // login user
+	quit loginStatus
+]]></Implementation>
+</Method>
+
+<Method name="RequireResource">
+<Description>
+This method holds process and expects only one package from
+the client - it includes authorization key.</Description>
+<ReturnType>%Status</ReturnType>
+<Implementation><![CDATA[	quit $SYSTEM.Security.Check("%Development","USE")
+]]></Implementation>
+</Method>
+
+<Method name="IterateProperty">
+<ClassMethod>1</ClassMethod>
+<Implementation><![CDATA[
+	set obj = ##class(%ZEN.proxyObject).%New()
+ 
+	set obj.Name="123"
+	set obj.SurName="123"
+	set propName=$o(obj.%data(""))
+	w propName
+	w $o(obj.%data(propName))
 ]]></Implementation>
 </Method>
 </Class>
