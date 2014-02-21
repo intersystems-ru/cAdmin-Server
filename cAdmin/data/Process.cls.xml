@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Export generator="Cache" version="25">
+<Class name="cAdmin.data.Process">
+<Super>%RegisteredObject</Super>
+<TimeCreated>63239,56118.99364</TimeCreated>
+
+<Method name="ListProcess">
+<ClassMethod>1</ClassMethod>
+<ReturnType>%String</ReturnType>
+<Implementation><![CDATA[
+	s i=1	
+	set JSON = "{"
+	set JSON = JSON _ """processes"":["
+	while (##class(%SYS.ProcessQuery).NextProcess(i)) 
+	{
+		set i  = ##class(%SYS.ProcessQuery).NextProcess(i) 
+		set JSON = JSON _  "{""id"":"""_i 
+		s t=##CLASS(%SYS.ProcessQuery).Open(i) 
+		set JSON = JSON _  """,""routine"":"""_t.Routine_"""}"
+		set:##class(%SYS.ProcessQuery).NextProcess(i) JSON= JSON _  ","
+	}
+	set JSON = JSON _  "]}"
+	
+	q JSON
+]]></Implementation>
+</Method>
+
+<Method name="KillProcess">
+<Description>
+Kill the process, cannot redo</Description>
+<ClassMethod>1</ClassMethod>
+<FormalSpec>id,withError=0</FormalSpec>
+<ReturnType>%Status</ReturnType>
+<Implementation><![CDATA[
+	zn "%SYS"
+	set process = ##class(SYS.Process).Open(id)
+	if '($get(process)) q $$$ERROR($lb("404","No such a process "_id))
+	if ($get(process).CanBeTerminated) 
+	{
+		d process.Terminate(withError)
+	}
+	q $$$OK
+]]></Implementation>
+</Method>
+
+<Method name="SuspendProcess">
+<Description>
+Stop the process, can resume after</Description>
+<ClassMethod>1</ClassMethod>
+<FormalSpec>id</FormalSpec>
+<ReturnType>%Status</ReturnType>
+<Implementation><![CDATA[
+	zn "%SYS"
+	set process = ##class(SYS.Process).Open(id)
+	if '($get(process)) q $$$ERROR(404,"No such a process: "_id)
+	if ($get(process).CanBeSuspended) 
+	{
+		d process.Suspend()
+	}
+	q $$$OK
+]]></Implementation>
+</Method>
+
+<Method name="ResumeProcess">
+<Description>
+Resume the process</Description>
+<ClassMethod>1</ClassMethod>
+<FormalSpec>id</FormalSpec>
+<ReturnType>%Status</ReturnType>
+<Implementation><![CDATA[
+	zn "%SYS"
+	set process = ##class(SYS.Process).Open(id)
+	if '($get(process)) q $$$ERROR($lb("404","No such a process "_id))
+	if ($get(process)) 
+	{
+		d process.Resume()
+	}
+	q $$$OK
+]]></Implementation>
+</Method>
+</Class>
+</Export>
