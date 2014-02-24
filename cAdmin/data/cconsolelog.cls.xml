@@ -1,0 +1,138 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Export generator="Cache" version="25">
+<Class name="cAdmin.data.cconsolelog">
+<Super>%RegisteredObject</Super>
+<TimeCreated>63242,34289.492298</TimeCreated>
+
+<UDLText name="T">
+<Content><![CDATA[
+// do ##class(%SYS.System).WriteToConsoleLog("msg","0","1")
+
+]]></Content>
+</UDLText>
+
+<Method name="Path">
+<ClassMethod>1</ClassMethod>
+<ReturnType>%String</ReturnType>
+<Implementation><![CDATA[		quit ##class(%SYSTEM.Config).ModifyConsoleFile()
+]]></Implementation>
+</Method>
+
+<Method name="Parse">
+<Description>
+do ##class(cAdmin.data.cconsolelog).Parse()</Description>
+<ClassMethod>1</ClassMethod>
+<Implementation><![CDATA[
+	Set file=##class(%File).%New(..Path())
+	Do file.Open("R")
+	while 'file.AtEnd
+	{					
+			do ..AddEntry(file.ReadLine())
+	}
+]]></Implementation>
+</Method>
+
+<Method name="Update">
+<Description>
+do ##class(cAdmin.data.cconsolelog).Update()</Description>
+<ClassMethod>1</ClassMethod>
+<Implementation><![CDATA[
+	Set lastdate=$g(^cAdmin("LastDate"),"01/01/1901-00:00:00:001")
+	Set file=##class(%File).%New(..Path())
+	Do file.Open("R")
+	while 'file.AtEnd
+	{
+		set line = file.ReadLine()
+		set date = $p(line,"-",1)
+		set dateh = $zdh(date,,,6)
+	}
+]]></Implementation>
+</Method>
+
+<Method name="AddEntry">
+<ClassMethod>1</ClassMethod>
+<FormalSpec>line:%String</FormalSpec>
+<Implementation><![CDATA[
+	try {
+									//dd/mm/yy-hh:mm:ss:fff (pid) severity message
+		set date = $p(line,"-",1)	//dd/mm/yy
+		set dateh = $zdh(date,,,6)  // internal format
+		set dateodbc = $zd(dateh,3)	//yyyy-mm-dd
+
+		set line= $p(line,"-",2,*)	//hh:mm:ss:fff (pid) severity message
+			
+		set time = $p(line," ",1)	//hh:mm:ss:fff
+		set timeodbc = $REVERSE($REPLACE($REVERSE(time),":",".",,1)) //hh:mm:ss.fff
+			
+		set line = $p(line," ",2,*)				//(pid) severity message
+			
+		set pid = $p(line," ",1)				//(pid)
+		
+		set entry = ##class(cconsoleentry).%New()
+		set entry.DateTime = dateodbc_" "_timeodbc
+		set entry.Pid = $ZSTRIP(pid,"*E'N")		//pid
+		set entry.Severity = $p(line," ",2)		//severity
+		set entry.Message = $p(line," ",3,*)	//message
+		do entry.%Save()
+		set ^cAdmin("LastDate")=dateh
+		set ^cAdmin("LastTime")=timeodbc
+	} catch ex {
+			// Not all strings contain messages
+			// do nothing
+	}
+]]></Implementation>
+</Method>
+
+<Method name="FullTextSearch">
+<ClassMethod>1</ClassMethod>
+<FormalSpec>query:%String</FormalSpec>
+<ReturnType>%String</ReturnType>
+<Implementation><![CDATA[
+	set SQL = "SELECT * FROM cAdmin_data.cconsoleentry WHERE message %CONTAINS ("_query_")"
+	quit ##class(%ZEN.Auxiliary.jsonSQLProvider).%WriteJSONFromSQL(,SQL)
+]]></Implementation>
+</Method>
+
+<Method name="DateTimeSearch">
+<ClassMethod>1</ClassMethod>
+<FormalSpec>query:%String</FormalSpec>
+<ReturnType>%String</ReturnType>
+<Implementation><![CDATA[
+	if $p(query,",",1)'=""	{
+		set startdatetime = $p(query,",",1)
+	} else {
+		set startdatetime = "1900-01-01 00:00:00.000"
+	}
+		
+	if $p(query,",",2)'=""	{
+		set enddatetime = $p(query,",",2)
+	} else {
+		set enddatetime = "2199-12-12 23:59:59.999"
+	}
+		
+	set SQL = 	"SELECT * FROM cAdmin_data.cconsoleentry WHERE "_
+				"DateTime BETWEEN {ts '"_startdatetime_"'} AND "_
+				" {ts '"_enddatetime_"'}" 
+	quit ##class(%ZEN.Auxiliary.jsonSQLProvider).%WriteJSONFromSQL(,SQL)
+]]></Implementation>
+</Method>
+
+<Storage name="Default">
+<Type>%Library.CacheStorage</Type>
+<DataLocation>^cAdmin.data.cconsolelogD</DataLocation>
+<DefaultData>cconsolelogDefaultData</DefaultData>
+<IdLocation>^cAdmin.data.cconsolelogD</IdLocation>
+<IndexLocation>^cAdmin.data.cconsolelogI</IndexLocation>
+<StreamLocation>^cAdmin.data.cconsolelogS</StreamLocation>
+<ExtentSize>100000</ExtentSize>
+<Data name="cconsolelogDefaultData">
+<Value name="1">
+<Value>%%CLASSNAME</Value>
+</Value>
+<Value name="2">
+<Value>path</Value>
+</Value>
+</Data>
+</Storage>
+</Class>
+</Export>
