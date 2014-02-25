@@ -2,9 +2,11 @@
 <Export generator="Cache" version="25">
 <Class name="cAdmin.data.Databases">
 <Super>%RegisteredObject</Super>
-<TimeCreated>63239,56381.97291</TimeCreated>
+<TimeCreated>63239,41438.998191</TimeCreated>
 
 <Property name="Databases">
+<Description>
+List of all cAdmin.data.Database objects</Description>
 <Type>Database</Type>
 <Collection>list</Collection>
 </Property>

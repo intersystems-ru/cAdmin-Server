@@ -1,7 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <Export generator="Cache" version="25">
 <Class name="cAdmin.WebSocket">
-<IncludeCode>%ZEN.Utils</IncludeCode>
+<Description>
+Web socket class. Manages all comunication with the client.</Description>
 <Super>%CSP.WebSocket</Super>
 <TimeCreated>63236,45246.272996</TimeCreated>
 
@@ -15,13 +16,23 @@ How long to wait for user when connection established</Description>
 <Default>3600</Default>
 </Parameter>
 
-<Parameter name="authorizationTimeout">
+<Parameter name="AuthorizationTimeout">
 <Description>
 How long to wait for authorization key when connection established</Description>
 <Default>5</Default>
 </Parameter>
 
+<Parameter name="Resource">
+<Description>
+Resource name, required to access this websocket</Description>
+<Default>%Development</Default>
+</Parameter>
+
 <Method name="Server">
+<Description><![CDATA[
+Main method. <br>
+Authenticates user, checks that he has required resource.
+If all goes well, initialises sensors and forwards users' input to Choose Action]]></Description>
 <ReturnType>%Status</ReturnType>
 <Implementation><![CDATA[
 	if ($$$ISOK(..RequireAuthorization() && $$$ISOK(..RequireResource()))) 
@@ -37,7 +48,7 @@ How long to wait for authorization key when connection established</Description>
 				}
 				If $$$GETERRORCODE(status) = $$$CSPWebSocketTimeout 
 				{
-     	   	     	Set status=..Write("Server timed-out at "_$Horolog)
+     	   	     	Set status=..Write("Server timed-out at "_$ZTIMESTAMP)
      	   		}
       		} else 
       		{
@@ -52,7 +63,34 @@ How long to wait for authorization key when connection established</Description>
 ]]></Implementation>
 </Method>
 
+<Method name="RequireAuthorization">
+<Description><![CDATA[
+Holds process and expects only one package from the client,<br>
+containing Username and password in JSON format. <br>
+Example : {User:"_SYSTEM",Password:"sys"}]]></Description>
+<ReturnType>%Status</ReturnType>
+<Implementation><![CDATA[
+	set authPair = ..Read(,.status,..#AuthorizationTimeout) // wait for package
+	set st = '$$$OK
+	set obj = ##class(%ZEN.proxyObject).%New()
+	set st = ##class(%ZEN.Auxiliary.jsonProvider).%ConvertJSONToObject(authPair,,.obj,1)
+	quit:$$$ISERR(st) st
+	set loginStatus = ##class(%SYSTEM.Security).Login(obj.User,obj.Password) // login user
+	quit loginStatus
+]]></Implementation>
+</Method>
+
+<Method name="RequireResource">
+<Description>
+Checks, if User (as defined in RequireAuthorization method) has required resourse</Description>
+<ReturnType>%Status</ReturnType>
+<Implementation><![CDATA[	quit $SYSTEM.Security.Check(..#Resource,"USE")
+]]></Implementation>
+</Method>
+
 <Method name="InitSensors">
+<Description>
+Create new Sensors object</Description>
 <Implementation><![CDATA[
 	set st=$$$OK
 	try	{
@@ -66,16 +104,23 @@ How long to wait for authorization key when connection established</Description>
 </Method>
 
 <Method name="ChooseAction">
+<Description><![CDATA[
+Chooses what action to take, based on user input.<br>
+Expected input:<br>
+&lt;action&gt;<br>
+&lt;action&gt;:&lt;argument1,argument2,...,argumentN&gt;<br>]]></Description>
 <FormalSpec>data:%String</FormalSpec>
 <ReturnType>%Status</ReturnType>
 <Implementation><![CDATA[
 	set action=$p(data,":",1) 
 	set params=$p(data,":",2,*)
+	set action=$ZCONVERT(action,"l")
+	
 	If action="exit" {do ..EndServer()}
-	ElseIf action="test" {do ..TestLoop()}
-	ElseIf action="DB" {do ..DBStats()}
+	ElseIf action="devtools" {do ..DevTools(params)}
+	ElseIf action="db" {do ..DBStats()}
 	ElseIf action="sensors" {do ..Sensors(params)}
-	ElseIf action="process" {do ..Process(params)}
+	ElseIf action="process" {do ..Process($p(params,",",1),$p(params,",",2,*))}
 	ElseIf (action [ "cconsole") {do ..Cconsole(action,params)}
 	Else { 
 		do ..Write(data_" from server")
@@ -85,13 +130,18 @@ How long to wait for authorization key when connection established</Description>
 </Method>
 
 <Method name="Sensors">
+<Description><![CDATA[
+Sends client a JSON encoded readins of sensors<br>
+<b>sensorslist</b> - comma separated list of sensors<br>
+Sends all sensors data if list is an empty string<br>
+Example: CPU,LockTable,CSPGatewayLatency]]></Description>
 <FormalSpec>sensorslist:%String</FormalSpec>
 <ReturnType>%Status</ReturnType>
 <Implementation><![CDATA[
 	if sensorslist="" 
 	{
 		do ..Write(##class(%ZEN.Auxiliary.jsonProvider).%WriteJSONFromObject(,$THIS.Sensors,,,,"aeloqtuw"))
-		//set sensorslist="CPU,RandomNumber,LockTable,CSPGatewayLatency,SMH,Increment,JournalSpace,Uptime,LicenseStatus,LicenseExpirationDate,LicenseInvalidReason"
+		//set sensorslist="CPU,LockTable,CSPGatewayLatency,SMH,JournalSpace,Uptime,LicenseStatus,LicenseExpirationDate,LicenseInvalidReason"
 	} else {
 		set sensors=$listfromstring(sensorslist,",")
 		for i=1:1:$LISTLENGTH(sensors) 
@@ -113,6 +163,8 @@ How long to wait for authorization key when connection established</Description>
 </Method>
 
 <Method name="DBStats">
+<Description>
+Writes Database information in JSON format</Description>
 <ReturnType>%String</ReturnType>
 <Implementation><![CDATA[	do ..Write(..Sensors.DBStats())
 ]]></Implementation>
@@ -144,7 +196,7 @@ How long to wait for authorization key when connection established</Description>
 			if newlastid>lastid
 			{
 
-				set JSON = ##class(cAdmin.data.CconsoleLog).SendLast(newlastid-lastid)
+				set JSON = ##class(cAdmin.data.CconsoleLog).GetLast(newlastid-lastid)
 				do ..Write($e(JSON,1,*-1))
 				set lastid=newlastid
 			}
@@ -155,13 +207,50 @@ How long to wait for authorization key when connection established</Description>
 </Method>
 
 <Method name="Process">
+<Description><![CDATA[
+Various actions with processes.<br>
+<b>action]]></Description>
+<FormalSpec>action:%String,id:%String</FormalSpec>
+<ReturnType>%Status</ReturnType>
+<Implementation><![CDATA[
+	if action="List" {
+		do ..Write(##class(cAdmin.data.Process).ListProcess())
+	} else {
+		do $CLASSMETHOD("cAdmin.data.Process",action_"Process",id)
+	}
+    quit $$$OK
+]]></Implementation>
+</Method>
+
+<Method name="DevTools">
+<Description>
+Various developement tools.</Description>
 <FormalSpec>args:%String</FormalSpec>
 <ReturnType>%Status</ReturnType>
 <Implementation><![CDATA[
-	if args="List" {
-		do ..Write(##class(cAdmin.data.Process).ListProcess())
+	if args="loop" {
+		do ..TestLoop()
+		quit $$$OK
+	}
+	
+	if args="" 
+	{
+		set args="RandomNumber,Increment"
 	} else {
-		do $CLASSMETHOD("cAdmin.data.Process",$p(args,",",1)_"Process",$p(args,",",2,*))
+		set sensors=$listfromstring(args,",")
+		for i=1:1:$LISTLENGTH(sensors) 
+		{
+			try {
+				set value=$CLASSMETHOD("cAdmin.data.DevTools",$list(sensors,i))
+		
+			} catch ex {
+				do ..Write(ex.AsStatus())
+				set value="NaN"
+			}
+			set $list(values,i)=value
+		}
+		set JSON=##class(%ZEN.Auxiliary.jsonProvider).%ArrayToJSON(.sensors,.values)
+	    do ..Write($e(JSON,1,*-1)) // no need to write status
 	}
     quit $$$OK
 ]]></Implementation>
@@ -170,57 +259,12 @@ How long to wait for authorization key when connection established</Description>
 <Method name="TestLoop">
 <ReturnType>%Status</ReturnType>
 <Implementation><![CDATA[
-	//
 	while (1) {
-		//set test=$g(^test("test"),"0")
-		if $g(^cAdmin("test"),0)'="0" 
-		{
-			do ..Write("{ ""alert"" : """_^cAdmin("test")_""" }")
-		}
+		set JSON = ##class(cAdmin.data.CconsoleLog).GetRandom()
+		do ..Write($e(JSON,1,*-1))		
 		hang 10
 	}
 	quit $$$OK
-]]></Implementation>
-</Method>
-
-<Method name="RequireAuthorization">
-<Description>
-This method holds process and expects only one package from
-the client - it includes authorization key.</Description>
-<ReturnType>%Status</ReturnType>
-<Implementation><![CDATA[
-	set authPair = ..Read(,.status,..#authorizationTimeout) // wait for package
-	set st = '$$$OK
-	set obj = ##class(%ZEN.proxyObject).%New()
-	set st = ##class(%ZEN.Auxiliary.jsonProvider).%ConvertJSONToObject(authPair,,.obj,1)
-	quit:$$$ISERR(st) st
-	set loginStatus = ##class(%SYSTEM.Security).Login(obj.User,obj.Password) // login user
-	quit loginStatus
-]]></Implementation>
-</Method>
-
-<Method name="RequireResource">
-<Description>
-This method holds process and expects only one package from
-the client - it includes authorization key.</Description>
-<ReturnType>%Status</ReturnType>
-<Implementation><![CDATA[	quit $SYSTEM.Security.Check("%Development","USE")
-]]></Implementation>
-</Method>
-
-<Method name="IterateProperty">
-<Description>
-Reference</Description>
-<Internal>1</Internal>
-<ClassMethod>1</ClassMethod>
-<Implementation><![CDATA[
-	set obj = ##class(%ZEN.proxyObject).%New()
- 
-	set obj.Name="123"
-	set obj.SurName="123"
-	set propName=$o(obj.%data(""))
-	w propName
-	w $o(obj.%data(propName))
 ]]></Implementation>
 </Method>
 </Class>

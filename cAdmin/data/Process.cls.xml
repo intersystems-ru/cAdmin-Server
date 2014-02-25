@@ -1,10 +1,14 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <Export generator="Cache" version="25">
 <Class name="cAdmin.data.Process">
+<Description>
+This class encapsulates all operations with processes.</Description>
 <Super>%RegisteredObject</Super>
-<TimeCreated>63239,56118.99364</TimeCreated>
+<TimeCreated>63239,51725.448373</TimeCreated>
 
 <Method name="ListProcess">
+<Description>
+Returns a list of all processes in JSON format</Description>
 <ClassMethod>1</ClassMethod>
 <ReturnType>%String</ReturnType>
 <Implementation><![CDATA[
@@ -26,8 +30,11 @@
 </Method>
 
 <Method name="KillProcess">
-<Description>
-Kill the process, cannot redo</Description>
+<Description><![CDATA[
+Terminate a process.<br>
+Kills a process by sending it a halt messages.<br>
+<b>id</b> - id of a process.<br>
+If SendError is 1 the killed job will send <RESJOB> error and logged in ^%ETN. <br>]]></Description>
 <ClassMethod>1</ClassMethod>
 <FormalSpec>id,withError=0</FormalSpec>
 <ReturnType>%Status</ReturnType>
@@ -44,8 +51,10 @@ Kill the process, cannot redo</Description>
 </Method>
 
 <Method name="SuspendProcess">
-<Description>
-Stop the process, can resume after</Description>
+<Description><![CDATA[
+Pauses the process.<br>
+Put a process into a wait state so it stops executing code.<br>
+<b>id</b> - id of a process.]]></Description>
 <ClassMethod>1</ClassMethod>
 <FormalSpec>id</FormalSpec>
 <ReturnType>%Status</ReturnType>
@@ -62,8 +71,10 @@ Stop the process, can resume after</Description>
 </Method>
 
 <Method name="ResumeProcess">
-<Description>
-Resume the process</Description>
+<Description><![CDATA[
+Resume a process.<br>
+Resumes a process after it had previously been suspended.<br> 
+<b>id</b> - id of a process.]]></Description>
 <ClassMethod>1</ClassMethod>
 <FormalSpec>id</FormalSpec>
 <ReturnType>%Status</ReturnType>

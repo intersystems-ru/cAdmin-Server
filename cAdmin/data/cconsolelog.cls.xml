@@ -74,10 +74,16 @@ do ##class(cAdmin.data.CconsoleLog).Parse()</Description>
 do ##class(cAdmin.data.CconsoleLog).Update()</Description>
 <ClassMethod>1</ClassMethod>
 <Implementation><![CDATA[
-	Set lastdate = $g(^cAdmin("LastDate"),"1")
-	Set lasttime = $g(^cAdmin("LastTime"),"0.001")
+	set hash = ##class(%File).SHA1Hash(..Path())
+	quit:hash=$g(^cAdmin("Cconsole","LastHash"),"0")
+	set ^cAdmin("Cconsole","LastHash")=hash
+
 	Set file = ##class(%File).%New(..Path())
 	Do file.Open("R")
+	
+	Set lastdate = $g(^cAdmin("Cconsole","LastDate"),"1")
+	Set lasttime = $g(^cAdmin("Cconsole","LastTime"),"0.001")
+	
 	while 'file.AtEnd
 	{
 		set line = file.ReadLine()
@@ -142,8 +148,8 @@ do ##class(cAdmin.data.CconsoleLog).Update()</Description>
 		set entry.Severity = $p(line," ",2)		//severity
 		set entry.Message = $p(line," ",3,*)	//message
 		do entry.%Save()
-		set ^cAdmin("LastDate")=dateh
-		set ^cAdmin("LastTime")=$zth(timeodbc)
+		set ^cAdmin("Cconsole","LastDate")=dateh
+		set ^cAdmin("Cconsole","LastTime")=$zth(timeodbc)
 	} catch ex {
 			// Not all strings contain messages
 			// do nothing
@@ -156,7 +162,7 @@ do ##class(cAdmin.data.CconsoleLog).Update()</Description>
 <FormalSpec>query:%String</FormalSpec>
 <ReturnType>%String</ReturnType>
 <Implementation><![CDATA[
-	set SQL = "SELECT * FROM cAdmin_data.CconsoleLog WHERE message %CONTAINS ("_query_")"
+	set SQL = "SELECT TOP 10 * FROM cAdmin_data.CconsoleLog WHERE message %CONTAINS ("_query_")"
 	quit ##class(%ZEN.Auxiliary.jsonSQLProvider).%WriteJSONFromSQL(,SQL)
 ]]></Implementation>
 </Method>
@@ -188,7 +194,7 @@ do ##class(cAdmin.data.CconsoleLog).Update()</Description>
 		set enddatetime = "2199-12-12 23:59:59.999"
 	}
 		
-	set SQL = 	"SELECT * FROM cAdmin_data.CconsoleLog WHERE "_
+	set SQL = 	"SELECT TOP 10 * FROM cAdmin_data.CconsoleLog WHERE "_
 				"DateTime BETWEEN {ts '"_startdatetime_"'} AND "_
 				" {ts '"_enddatetime_"'}" 
 	quit ##class(%ZEN.Auxiliary.jsonSQLProvider).%WriteJSONFromSQL(,SQL)

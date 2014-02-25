@@ -13,10 +13,6 @@
 <Type>%Integer</Type>
 </Property>
 
-<Property name="RandomNumber">
-<Type>%Integer</Type>
-</Property>
-
 <Property name="LockTable">
 <Type>%Numeric</Type>
 </Property>
@@ -26,10 +22,6 @@
 </Property>
 
 <Property name="SMH">
-<Type>%Integer</Type>
-</Property>
-
-<Property name="Increment">
 <Type>%Integer</Type>
 </Property>
 
@@ -52,12 +44,6 @@
 <Property name="LicenseInvalidReason">
 <Type>%String</Type>
 </Property>
-
-<Method name="RandomNumberGet">
-<ReturnType>%Integer</ReturnType>
-<Implementation><![CDATA[   	quit $RANDOM(100)
-]]></Implementation>
-</Method>
 
 <Method name="CPUGet">
 <ReturnType>%Integer</ReturnType>
@@ -88,14 +74,6 @@
 <Implementation><![CDATA[
 	do ..Sensors.GetSMH()
 	quit ..Sensors.SensorReading("SMHPercentFull")
-]]></Implementation>
-</Method>
-
-<Method name="IncrementGet">
-<ReturnType>%Integer</ReturnType>
-<Implementation><![CDATA[
-   	set ^test("HDD")=($g(^test("HDD"),"50")+$RANDOM(4)) # 100
-   	quit $g(^test("HDD"),"50")
 ]]></Implementation>
 </Method>
 

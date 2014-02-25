@@ -1,26 +1,38 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <Export generator="Cache" version="25">
 <Class name="cAdmin.data.Database">
+<Description>
+This class contins all information about database</Description>
 <Super>%RegisteredObject</Super>
-<TimeCreated>63239,56337.021872</TimeCreated>
+<TimeCreated>63239,39736.109086</TimeCreated>
 
 <Property name="Path">
+<Description>
+String, contaiinig path to the database</Description>
 <Type>%String</Type>
 </Property>
 
 <Property name="DirectorySpace">
+<Description>
+Availible free space for the database</Description>
 <Type>%Integer</Type>
 </Property>
 
 <Property name="DBWrites">
+<Description>
+Writes per minute to the listed mounted database</Description>
 <Type>%Integer</Type>
 </Property>
 
 <Property name="DBReads">
+<Description>
+Reads per minute from the listed mounted database</Description>
 <Type>%Integer</Type>
 </Property>
 
 <Property name="DBLatency">
+<Description>
+Milliseconds to complete a random read from the listed mounted database</Description>
 <Type>%Integer</Type>
 </Property>
 
