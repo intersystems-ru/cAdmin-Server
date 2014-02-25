@@ -12,7 +12,7 @@
 <Parameter name="Timeout">
 <Description>
 How long to wait for user when connection established</Description>
-<Default>120</Default>
+<Default>3600</Default>
 </Parameter>
 
 <Parameter name="authorizationTimeout">
@@ -124,14 +124,31 @@ How long to wait for authorization key when connection established</Description>
 <Implementation><![CDATA[
 	if action = "cconsole-fulltextsearch"
 	{
-		set JSON = ##class(cAdmin.data.cconsolelog).FullTextSearch(params)
+		set JSON = ##class(cAdmin.data.CconsoleLog).FullTextSearch(params)
 		do ..Write($e(JSON,1,*-1))
 	}
-	
-	if action = "cconsole-filterdate"
+	elseif action = "cconsole-filterdate"
 	{
-		set JSON = ##class(cAdmin.data.cconsolelog).DateTimeSearch(params)
+		set JSON = ##class(cAdmin.data.CconsoleLog).DateTimeSearch(params)
 		do ..Write($e(JSON,1,*-1))
+	}
+	elseif action="cconsole-alert"
+	{
+		do ##class(cAdmin.data.CconsoleLog).Update()
+		set lastid = ##class(cAdmin.data.CconsoleLog).GetLastId()
+		while (1)
+		{
+			hang 10
+			do ##class(cAdmin.data.CconsoleLog).Update()
+			set newlastid = ##class(cAdmin.data.CconsoleLog).GetLastId()
+			if newlastid>lastid
+			{
+
+				set JSON = ##class(cAdmin.data.CconsoleLog).SendLast(newlastid-lastid)
+				do ..Write($e(JSON,1,*-1))
+				set lastid=newlastid
+			}
+		}
 	}
     quit $$$OK
 ]]></Implementation>
@@ -156,9 +173,9 @@ How long to wait for authorization key when connection established</Description>
 	//
 	while (1) {
 		//set test=$g(^test("test"),"0")
-		if ^test("test")'="0" 
+		if $g(^cAdmin("test"),0)'="0" 
 		{
-			do ..Write("{ ""alert"" : """_^test("test")_""" }")
+			do ..Write("{ ""alert"" : """_^cAdmin("test")_""" }")
 		}
 		hang 10
 	}
