@@ -1,6 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <Export generator="Cache" version="25">
 <Class name="cAdmin.data.CconsoleLog">
+<Description>
+Class for work with cconsole.log</Description>
 <Super>%Persistent</Super>
 <TimeCreated>63243,34907.371349</TimeCreated>
 
@@ -49,6 +51,8 @@
 </UDLText>
 
 <Method name="Path">
+<Description>
+Path to cconsole.log</Description>
 <ClassMethod>1</ClassMethod>
 <ReturnType>%String</ReturnType>
 <Implementation><![CDATA[		quit ##class(%SYSTEM.Config).ModifyConsoleFile()
@@ -57,33 +61,34 @@
 
 <Method name="Parse">
 <Description>
-do ##class(cAdmin.data.CconsoleLog).Parse()</Description>
+Parse cconsole.log file, converting it lines into instances of this class</Description>
 <ClassMethod>1</ClassMethod>
 <Implementation><![CDATA[
-	Set file=##class(%File).%New(..Path())
-	Do file.Open("R")
+	set hash=##class(%File).SHA1Hash(..Path())
+	set file=##class(%File).%New(..Path())
+	do file.Open("R")
 	while 'file.AtEnd
 	{					
 			do ..AddEntry(file.ReadLine())
 	}
+	set ^cAdmin("Cconsole","LastHash")=hash
 ]]></Implementation>
 </Method>
 
 <Method name="Update">
 <Description>
-do ##class(cAdmin.data.CconsoleLog).Update()</Description>
+Get new records from cconsole.log</Description>
 <ClassMethod>1</ClassMethod>
 <Implementation><![CDATA[
-	set hash = ##class(%File).SHA1Hash(..Path())
-	quit:hash=$g(^cAdmin("Cconsole","LastHash"),"0")
+	set hash=##class(%File).SHA1Hash(..Path())
+	set lasthash=$g(^cAdmin("Cconsole","LastHash"),"0")
+	quit:hash=lasthash	
 	set ^cAdmin("Cconsole","LastHash")=hash
-
-	Set file = ##class(%File).%New(..Path())
-	Do file.Open("R")
 	
-	Set lastdate = $g(^cAdmin("Cconsole","LastDate"),"1")
-	Set lasttime = $g(^cAdmin("Cconsole","LastTime"),"0.001")
-	
+	set lastdate = $g(^cAdmin("Cconsole","LastDate"),"1")
+	set lasttime = $g(^cAdmin("Cconsole","LastTime"),"0.001")
+	set file = ##class(%File).%New(..Path())
+	do file.Open("R")
 	while 'file.AtEnd
 	{
 		set line = file.ReadLine()
@@ -124,6 +129,9 @@ do ##class(cAdmin.data.CconsoleLog).Update()</Description>
 </Method>
 
 <Method name="AddEntry">
+<Description><![CDATA[
+Add one new record to database<br>
+<b>line</b> - one line from cconsole.log. Expected format is: dd/mm/yy-hh:mm:ss:fff (pid) severity message]]></Description>
 <ClassMethod>1</ClassMethod>
 <FormalSpec>line:%String</FormalSpec>
 <Implementation><![CDATA[
@@ -157,17 +165,9 @@ do ##class(cAdmin.data.CconsoleLog).Update()</Description>
 ]]></Implementation>
 </Method>
 
-<Method name="FullTextSearch">
-<ClassMethod>1</ClassMethod>
-<FormalSpec>query:%String</FormalSpec>
-<ReturnType>%String</ReturnType>
-<Implementation><![CDATA[
-	set SQL = "SELECT TOP 10 * FROM cAdmin_data.CconsoleLog WHERE message %CONTAINS ("_query_")"
-	quit ##class(%ZEN.Auxiliary.jsonSQLProvider).%WriteJSONFromSQL(,SQL)
-]]></Implementation>
-</Method>
-
-<Method name="SendLast">
+<Method name="GetLast">
+<Description><![CDATA[
+Get last <b>num</b> entries from cconsole.log database]]></Description>
 <ClassMethod>1</ClassMethod>
 <FormalSpec>num:%Integer</FormalSpec>
 <ReturnType>%String</ReturnType>
@@ -177,36 +177,56 @@ do ##class(cAdmin.data.CconsoleLog).Update()</Description>
 ]]></Implementation>
 </Method>
 
-<Method name="DateTimeSearch">
-<ClassMethod>1</ClassMethod>
-<FormalSpec>query:%String</FormalSpec>
-<ReturnType>%String</ReturnType>
-<Implementation><![CDATA[
-	if $p(query,",",1)'=""	{
-		set startdatetime = $p(query,",",1)
-	} else {
-		set startdatetime = "1900-01-01 00:00:00.000"
-	}
-		
-	if $p(query,",",2)'=""	{
-		set enddatetime = $p(query,",",2)
-	} else {
-		set enddatetime = "2199-12-12 23:59:59.999"
-	}
-		
-	set SQL = 	"SELECT TOP 10 * FROM cAdmin_data.CconsoleLog WHERE "_
-				"DateTime BETWEEN {ts '"_startdatetime_"'} AND "_
-				" {ts '"_enddatetime_"'}" 
-	quit ##class(%ZEN.Auxiliary.jsonSQLProvider).%WriteJSONFromSQL(,SQL)
-]]></Implementation>
-</Method>
-
 <Method name="GetLastId">
+<Description>
+Get last id from cconsole.log database</Description>
 <ClassMethod>1</ClassMethod>
 <ReturnType>%Integer</ReturnType>
 <Implementation><![CDATA[
 	&sql(select top 1 id into :lastid from cAdmin_data.CconsoleLog order by id desc)
 	quit lastid
+]]></Implementation>
+</Method>
+
+<Method name="GetRandom">
+<Description>
+Get random entry from cconsole.log database</Description>
+<ClassMethod>1</ClassMethod>
+<ReturnType>%String</ReturnType>
+<Implementation><![CDATA[
+	set lastid = ##class(cAdmin.data.CconsoleLog).GetLastId()
+	set id= $Random(lastid)+1
+	set SQL = "SELECT * FROM cAdmin_data.CconsoleLog WHERE id = '"_id_"'"
+	quit ##class(%ZEN.Auxiliary.jsonSQLProvider).%WriteJSONFromSQL(,SQL)
+]]></Implementation>
+</Method>
+
+<Method name="FullTextSearch">
+<Description><![CDATA[
+Search for all cconsole.log entries, containing <b>query</b><br>
+Example: 'alert','max']]></Description>
+<ClassMethod>1</ClassMethod>
+<FormalSpec>query:%String</FormalSpec>
+<ReturnType>%String</ReturnType>
+<Implementation><![CDATA[
+	set SQL = "SELECT TOP 10 * FROM cAdmin_data.CconsoleLog WHERE message %CONTAINS ("_query_")"
+	quit ##class(%ZEN.Auxiliary.jsonSQLProvider).%WriteJSONFromSQL(,SQL)
+]]></Implementation>
+</Method>
+
+<Method name="DateTimeSearch">
+<Description>
+Search for all cconsole.log entries, from startdatetime to enddatetime
+Where startdatetime,enddatetime are TimeStamps - in yyyy-mm-dd hh:mm:ss.fff format.</Description>
+<ClassMethod>1</ClassMethod>
+<FormalSpec>startdatetime:%TimeStamp,enddatetime:%TimeStamp</FormalSpec>
+<ReturnType>%String</ReturnType>
+<Implementation><![CDATA[
+	
+	set SQL = 	"SELECT TOP 10 * FROM cAdmin_data.CconsoleLog WHERE "_
+				"DateTime BETWEEN {ts '"_startdatetime_"'} AND "_
+				" {ts '"_enddatetime_"'}" 
+	quit ##class(%ZEN.Auxiliary.jsonSQLProvider).%WriteJSONFromSQL(,SQL)
 ]]></Implementation>
 </Method>
 

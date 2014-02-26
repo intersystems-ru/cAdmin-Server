@@ -81,8 +81,8 @@ Example : {User:"_SYSTEM",Password:"sys"}]]></Description>
 </Method>
 
 <Method name="RequireResource">
-<Description>
-Checks, if User (as defined in RequireAuthorization method) has required resourse</Description>
+<Description><![CDATA[
+Checks, if User (as defined in <b>RequireAuthorization</b> method) has required resourse]]></Description>
 <ReturnType>%Status</ReturnType>
 <Implementation><![CDATA[	quit $SYSTEM.Security.Check(..#Resource,"USE")
 ]]></Implementation>
@@ -131,7 +131,7 @@ Expected input:<br>
 
 <Method name="Sensors">
 <Description><![CDATA[
-Sends client a JSON encoded readins of sensors<br>
+Sends client a JSON encoded readings of sensors<br>
 <b>sensorslist</b> - comma separated list of sensors<br>
 Sends all sensors data if list is an empty string<br>
 Example: CPU,LockTable,CSPGatewayLatency]]></Description>
@@ -171,6 +171,15 @@ Writes Database information in JSON format</Description>
 </Method>
 
 <Method name="Cconsole">
+<Description><![CDATA[
+Outputs Cconsole entries in JSON format.<br>
+<b>action</b> - action to perform. May be one of:<br>
+cconsole-fulltextsearch, cconsole-filterdate, cconsole-alert.<br>
+<b>params</b>, depending on methods are:<br>
+‘Term1’ ,’Term2’,...'TermN' - for cconsole-fulltextsearch<br>
+yyyy-mm-dd hh:mm:ss.fff,YYYY-MM-DD HH:MM:SS.FFF - for cconsole-filterdate<br>
+Empty string for cconsole-alert.<br>
+Descriptions of methods are in documentation for <b>cAdmin.data.CconsoleLog</b> class<br>]]></Description>
 <FormalSpec>action:%String,params:%String</FormalSpec>
 <ReturnType>%Status</ReturnType>
 <Implementation><![CDATA[
@@ -181,7 +190,18 @@ Writes Database information in JSON format</Description>
 	}
 	elseif action = "cconsole-filterdate"
 	{
-		set JSON = ##class(cAdmin.data.CconsoleLog).DateTimeSearch(params)
+		if $p(params,",",1)'=""	{
+			set startdatetime = $p(params,",",1)
+		} else {
+			set startdatetime = "1900-01-01 00:00:00.000"
+		}
+		
+		if $p(params,",",2)'=""	{
+			set enddatetime = $p(params,",",2)
+		} else {
+			set enddatetime = "2199-12-12 23:59:59.999"
+		}
+		set JSON = ##class(cAdmin.data.CconsoleLog).DateTimeSearch(startdatetime,enddatetime)
 		do ..Write($e(JSON,1,*-1))
 	}
 	elseif action="cconsole-alert"
@@ -209,8 +229,9 @@ Writes Database information in JSON format</Description>
 <Method name="Process">
 <Description><![CDATA[
 Various actions with processes.<br>
-<b>action]]></Description>
-<FormalSpec>action:%String,id:%String</FormalSpec>
+<b>action</b> - List, Kill, Suspend or Resume<br>
+<b>id</b> - Id of a process to Kill, Suspend or Resume.]]></Description>
+<FormalSpec>action:%String="List",id:%String</FormalSpec>
 <ReturnType>%Status</ReturnType>
 <Implementation><![CDATA[
 	if action="List" {
@@ -223,9 +244,10 @@ Various actions with processes.<br>
 </Method>
 
 <Method name="DevTools">
-<Description>
-Various developement tools.</Description>
-<FormalSpec>args:%String</FormalSpec>
+<Description><![CDATA[
+Various developement tools<br>
+<b>args</b> - loop or RandomNumber or Increment]]></Description>
+<FormalSpec>args:%String="RandomNumber,Increment"</FormalSpec>
 <ReturnType>%Status</ReturnType>
 <Implementation><![CDATA[
 	if args="loop" {
@@ -233,30 +255,26 @@ Various developement tools.</Description>
 		quit $$$OK
 	}
 	
-	if args="" 
+	set sensors=$listfromstring(args,",")
+	for i=1:1:$LISTLENGTH(sensors) 
 	{
-		set args="RandomNumber,Increment"
-	} else {
-		set sensors=$listfromstring(args,",")
-		for i=1:1:$LISTLENGTH(sensors) 
-		{
-			try {
-				set value=$CLASSMETHOD("cAdmin.data.DevTools",$list(sensors,i))
-		
-			} catch ex {
-				do ..Write(ex.AsStatus())
-				set value="NaN"
-			}
-			set $list(values,i)=value
+		try {
+			set value=$CLASSMETHOD("cAdmin.data.DevTools",$list(sensors,i))	
+		} catch ex {
+			do ..Write(ex.AsStatus())
+			set value="NaN"
 		}
-		set JSON=##class(%ZEN.Auxiliary.jsonProvider).%ArrayToJSON(.sensors,.values)
-	    do ..Write($e(JSON,1,*-1)) // no need to write status
+		set $list(values,i)=value
 	}
+	set JSON=##class(%ZEN.Auxiliary.jsonProvider).%ArrayToJSON(.sensors,.values)
+    do ..Write($e(JSON,1,*-1)) // no need to write status
     quit $$$OK
 ]]></Implementation>
 </Method>
 
 <Method name="TestLoop">
+<Description>
+Returns random cconsole.log entry every 10 seconds</Description>
 <ReturnType>%Status</ReturnType>
 <Implementation><![CDATA[
 	while (1) {

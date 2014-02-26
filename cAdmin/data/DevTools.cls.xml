@@ -15,6 +15,22 @@ Get a random number</Description>
 ]]></Implementation>
 </Method>
 
+<Method name="RandomString">
+<Description>
+Get a random string</Description>
+<ClassMethod>1</ClassMethod>
+<ReturnType>%String</ReturnType>
+<Implementation><![CDATA[
+	set str = ""
+	set length =  $g(^cAdmin("DevTools","RandomStringLength"),"8100")
+	for {
+    	set str = str _ $Char(65 + $Random(25))
+    	quit:$Length(str)>length
+	}
+   	quit str
+]]></Implementation>
+</Method>
+
 <Method name="Increment">
 <Description>
 Increments number from 0 to 100, then starts from 0</Description>
