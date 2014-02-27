@@ -13,7 +13,7 @@ Web socket class. Manages all comunication with the client.</Description>
 <Parameter name="Timeout">
 <Description>
 How long to wait for user when connection established</Description>
-<Default>3600</Default>
+<Default>120</Default>
 </Parameter>
 
 <Parameter name="AuthorizationTimeout">
