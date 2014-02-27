@@ -7,10 +7,14 @@ Class for work with cconsole.log</Description>
 <TimeCreated>63243,34907.371349</TimeCreated>
 
 <Property name="DateTime">
+<Description>
+Date and Time of cconsole entry</Description>
 <Type>%TimeStamp</Type>
 </Property>
 
 <Property name="Pid">
+<Description>
+Process id</Description>
 <Type>%Integer</Type>
 </Property>
 
@@ -21,10 +25,18 @@ Class for work with cconsole.log</Description>
 </Property>
 
 <Property name="Message">
+<Description>
+Text of cconsole entry</Description>
 <Type>%Text</Type>
 <Parameter name="LANGUAGECLASS" value="%Text.English"/>
 <Parameter name="MAXLEN" value="1000"/>
 </Property>
+
+<Parameter name="MaxEntries">
+<Description>
+Maximal number of entries. Old ones would be deleted first</Description>
+<Default>10000</Default>
+</Parameter>
 
 <Index name="MessageIndex">
 <Type>bitmap</Type>
@@ -55,7 +67,10 @@ Class for work with cconsole.log</Description>
 Path to cconsole.log</Description>
 <ClassMethod>1</ClassMethod>
 <ReturnType>%String</ReturnType>
-<Implementation><![CDATA[		quit ##class(%SYSTEM.Config).ModifyConsoleFile()
+<Implementation><![CDATA[
+	 //new $Roles
+	 //set sc = $SYSTEM.Security.AddRoles("cAdmin")
+	 quit ##class(%SYSTEM.Config).ModifyConsoleFile()
 ]]></Implementation>
 </Method>
 
@@ -72,6 +87,7 @@ Parse cconsole.log file, converting it lines into instances of this class</Descr
 			do ..AddEntry(file.ReadLine())
 	}
 	set ^cAdmin("Cconsole","LastHash")=hash
+	do ..PurgeOverflow()
 ]]></Implementation>
 </Method>
 
@@ -125,13 +141,13 @@ Get new records from cconsole.log</Description>
 			do ..AddEntry(file.ReadLine())
 		}
 	}
+	do ..PurgeOverflow()
 ]]></Implementation>
 </Method>
 
 <Method name="AddEntry">
-<Description><![CDATA[
-Add one new record to database<br>
-<b>line</b> - one line from cconsole.log. Expected format is: dd/mm/yy-hh:mm:ss:fff (pid) severity message]]></Description>
+<Description>
+Add one new record to database</Description>
 <ClassMethod>1</ClassMethod>
 <FormalSpec>line:%String</FormalSpec>
 <Implementation><![CDATA[
@@ -161,6 +177,20 @@ Add one new record to database<br>
 	} catch ex {
 			// Not all strings contain messages
 			// do nothing
+	}
+]]></Implementation>
+</Method>
+
+<Method name="PurgeOverflow">
+<Description><![CDATA[
+Delete first entries if number of Entries>MaxEntries]]></Description>
+<ClassMethod>1</ClassMethod>
+<Implementation><![CDATA[
+	&sql(select top 1 count(id) into :count from cAdmin_data.CconsoleLog)
+	if count>..#MaxEntries 
+	{
+		set delnumber = count * 0.2
+		&sql(delete from cAdmin_data.CconsoleLog where id in (select top :delnumber id from cAdmin_data.CconsoleLog order by id asc))
 	}
 ]]></Implementation>
 </Method>

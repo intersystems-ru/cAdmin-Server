@@ -90,10 +90,25 @@ Get information about databases in JSON format</Description>
 		set DB.DBReads=..Sensors.SensorReading("DBReads",DBPath)
 		set DB.DBLatency=..Sensors.SensorReading("DBLatency",DBPath)
 		set DB.DBStats=..Sensors.DBStats(DBPath)
-	
+		set DB.Name="11"
 		do DBs.Databases.Insert(DB)
 		set DBPath=$o(..Sensors.DBStats(DBPath))
 	}
+	
+	set DBcount=DBs.Databases.Count()
+	zn "%SYS"
+	set rs=##class(%Library.ResultSet).%New("Config.Databases:CompactLocalDBList")
+	do rs.Execute()
+	while rs.Next() {
+		for i=1:1:DBcount {
+			if rs.Data("Directory")=DBs.Databases.GetAt(i).Path {
+				set DBs.Databases.GetAt(i).Name=rs.Data("Name")
+				quit
+			}
+		}
+		
+	}
+	
 	quit ##class(%ZEN.Auxiliary.jsonProvider).%WriteJSONFromObject(,DBs,,,,"aeloqtuw")
 ]]></Implementation>
 </Method>

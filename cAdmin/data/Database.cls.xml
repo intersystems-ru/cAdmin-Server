@@ -6,9 +6,15 @@ This class contins all information about database</Description>
 <Super>%RegisteredObject</Super>
 <TimeCreated>63239,39736.109086</TimeCreated>
 
+<Property name="Name">
+<Description>
+String, containig name of the database</Description>
+<Type>%String</Type>
+</Property>
+
 <Property name="Path">
 <Description>
-String, contaiinig path to the database</Description>
+String, containig path to the database</Description>
 <Type>%String</Type>
 </Property>
 
