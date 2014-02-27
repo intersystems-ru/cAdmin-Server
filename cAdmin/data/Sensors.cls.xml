@@ -74,16 +74,13 @@ Reason the key is invalid or in a troubled state</Description>
 <Type>%String</Type>
 </Property>
 
-<Parameter name="NotFound">
-<Default>NaN</Default>
-</Parameter>
-
 <Method name="DBStats">
 <Description>
 Get information about databases in JSON format</Description>
 <ReturnType>%String</ReturnType>
 <Implementation><![CDATA[
 	do ..Sensors.GetDBStats()
+	
 	set DBs=##class(cAdmin.data.Databases).%New()
 	set DBPath=$o(..Sensors.DBStats(""))
 	while DBPath'="" {
@@ -99,21 +96,19 @@ Get information about databases in JSON format</Description>
 	}
 	
 	set DBcount=DBs.Databases.Count()
-	set ns=$ZNSPACE
-	zn "%SYS"
-	set rs=##class(%Library.ResultSet).%New("Config.Databases:CompactLocalDBList")
+
+	set rs=##class(%Library.ResultSet).%New("SYS.Database:FreeSpace")
 	do rs.Execute()
 	while rs.Next() {
 		for i=1:1:DBcount {
 			if rs.Data("Directory")=DBs.Databases.GetAt(i).Path {
-				set DBs.Databases.GetAt(i).Name=rs.Data("Name")
+				set DBs.Databases.GetAt(i).Name=rs.Data("DatabaseName")
+				set DBs.Databases.GetAt(i).Size=rs.Data("SizeInt")
 				quit
 			}
 		}
 		
 	}
-	kill rs
-	zn ns
 	
 	quit ##class(%ZEN.Auxiliary.jsonProvider).%WriteJSONFromObject(,DBs,,,,"aeloqtuw")
 ]]></Implementation>
@@ -190,14 +185,8 @@ Create and Initialyse System Sensors after object creation</Description>
 <Internal>1</Internal>
 <ReturnType>%Integer</ReturnType>
 <Implementation><![CDATA[
-	try {
-		do ..Sensors.GetCPU()
-		set CPU = ..Sensors.SensorReading("CPUusage")	
-	} catch {
-		set CPU = ..#NotFound
-	}
-	if CPU>100 set CPU = 0
-	quit CPU
+	do ..Sensors.GetCPU()	
+   	quit ..Sensors.SensorReading("CPUusage")
 ]]></Implementation>
 </Method>
 
@@ -205,13 +194,8 @@ Create and Initialyse System Sensors after object creation</Description>
 <Internal>1</Internal>
 <ReturnType>%Numeric</ReturnType>
 <Implementation><![CDATA[
-	try {
-		do ..Sensors.GetLockTable()	
-		set LockTable = ..Sensors.SensorReading("LockTablePercentFull")
-	} catch {
-		set LockTable = ..#NotFound
-	}
-   	quit LockTable
+	do ..Sensors.GetLockTable()	
+   	quit ..Sensors.SensorReading("LockTablePercentFull")
 ]]></Implementation>
 </Method>
 
@@ -219,13 +203,8 @@ Create and Initialyse System Sensors after object creation</Description>
 <Internal>1</Internal>
 <ReturnType>%Numeric</ReturnType>
 <Implementation><![CDATA[
-	try {
-		do ..Sensors.GetCSPGateway()	
-   		set CSPGatewayLatency = ..Sensors.SensorReading("CSPGatewayLatency",$o(..Sensors.SensorReading("CSPGatewayLatency","")))
-	} catch {
-		set CSPGatewayLatency = ..#NotFound
-	}
-	quit CSPGatewayLatency
+	do ..Sensors.GetCSPGateway()	
+   	quit ..Sensors.SensorReading("CSPGatewayLatency",$o(..Sensors.SensorReading("CSPGatewayLatency","")))
 ]]></Implementation>
 </Method>
 
@@ -233,13 +212,8 @@ Create and Initialyse System Sensors after object creation</Description>
 <Internal>1</Internal>
 <ReturnType>%Integer</ReturnType>
 <Implementation><![CDATA[
-	try {
-		do ..Sensors.GetSMH()
-		set SMH = ..Sensors.SensorReading("SMHPercentFull")
-	} catch {
-		set SMH = ..#NotFound
-	}
-	quit SMH
+	do ..Sensors.GetSMH()
+	quit ..Sensors.SensorReading("SMHPercentFull")
 ]]></Implementation>
 </Method>
 
@@ -247,13 +221,8 @@ Create and Initialyse System Sensors after object creation</Description>
 <Internal>1</Internal>
 <ReturnType>%Numeric</ReturnType>
 <Implementation><![CDATA[
-	try {
-		do ..Sensors.GetJournalSpace()	
-	   	set JournalSpace =  ..Sensors.SensorReading("JournalSpace")
-	} catch {
-		set JournalSpace = ..#NotFound
-	}
-	quit JournalSpace
+	do ..Sensors.GetJournalSpace()	
+   	quit ..Sensors.SensorReading("JournalSpace")
 ]]></Implementation>
 </Method>
 
