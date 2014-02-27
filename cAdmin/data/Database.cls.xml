@@ -45,5 +45,11 @@ Milliseconds to complete a random read from the listed mounted database</Descrip
 <Property name="DBStats">
 <Type>%Numeric</Type>
 </Property>
+
+<Property name="Size">
+<Description>
+Size of database in mb</Description>
+<Type>%Integer</Type>
+</Property>
 </Class>
 </Export>
