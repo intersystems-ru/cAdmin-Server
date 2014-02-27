@@ -64,13 +64,20 @@ Maximal number of entries. Old ones would be deleted first</Description>
 
 <Method name="Path">
 <Description>
-Path to cconsole.log</Description>
+Path to cconsole.log. 
+Requires resource %Admin_Manage</Description>
 <ClassMethod>1</ClassMethod>
 <ReturnType>%String</ReturnType>
 <Implementation><![CDATA[
 	 //new $Roles
 	 //set sc = $SYSTEM.Security.AddRoles("cAdmin")
-	 quit ##class(%SYSTEM.Config).ModifyConsoleFile()
+	 try {
+	 	set path = ##class(%SYSTEM.Config).ModifyConsoleFile()
+	 } catch {
+		 /// Do not have the resource %Admin_Manage
+		 set path = ##class(%File).ManagerDirectory()_"cconsole.log" 
+	 }
+	 quit path
 ]]></Implementation>
 </Method>
 
