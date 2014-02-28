@@ -15,7 +15,7 @@ InterSystems Caché Administration Mobile tool - Server side. Bundled with proje
 9.	For user cAdminUser on tab SQL Tables add access to Select and Delete  for table cAdmin_data.CconsoleLog from cAdmin namespace <br>
 
 <b>Use (JavaScript)</b><br>
-ws = new WebSocket("ws://<server ip>:<server port>/csp/<Namespace> /cAdmin.WebSocket.cls");<br>
+ws = new WebSocket("ws://&lt;server ip&gt;:&lt;server port&gt;/csp/&lt;Namespace&gt;/cAdmin.WebSocket.cls");<br>
 ws.onopen = function(){ ws.send(JSON.stringify({User:" cAdminUser ",Password:" cAdminUserPassword"}))}; <br>
 ws.onmessage = function(m){console.log(m)};<br>
 ws.send(‘devtools:RandomNumber’);<br>
