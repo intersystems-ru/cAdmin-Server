@@ -195,7 +195,7 @@ Create and Initialyse System Sensors after object creation</Description>
 	} catch {
 		set CPU = ..#NotAvailible
 	}
-	if CPU > 100 set CPU = 0
+	if CPU > 100 set CPU = 0  /// Overflows
 	quit CPU
 ]]></Implementation>
 </Method>
@@ -249,7 +249,7 @@ Create and Initialyse System Sensors after object creation</Description>
 <Implementation><![CDATA[
  
 	try {
-	do ..Sensors.GetJournalSpace()	
+		do ..Sensors.GetJournalSpace()	
  	  	set JournalSpace = ..Sensors.SensorReading("JournalSpace")
 	} catch {
 		set JournalSpace = ..#NotAvailible
