@@ -74,6 +74,10 @@ Reason the key is invalid or in a troubled state</Description>
 <Type>%String</Type>
 </Property>
 
+<Parameter name="NotAvailible">
+<Default>NaN</Default>
+</Parameter>
+
 <Method name="DBStats">
 <Description>
 Get information about databases in JSON format</Description>
@@ -185,8 +189,14 @@ Create and Initialyse System Sensors after object creation</Description>
 <Internal>1</Internal>
 <ReturnType>%Integer</ReturnType>
 <Implementation><![CDATA[
+	try {
 	do ..Sensors.GetCPU()	
-   	quit ..Sensors.SensorReading("CPUusage")
+   	set CPU =  ..Sensors.SensorReading("CPUusage")
+	} catch {
+		set CPU = ..#NotAvailible
+	}
+	if CPU > 100 set CPU = 0
+	quit CPU
 ]]></Implementation>
 </Method>
 
@@ -194,8 +204,13 @@ Create and Initialyse System Sensors after object creation</Description>
 <Internal>1</Internal>
 <ReturnType>%Numeric</ReturnType>
 <Implementation><![CDATA[
-	do ..Sensors.GetLockTable()	
-   	quit ..Sensors.SensorReading("LockTablePercentFull")
+   	try {
+		do ..Sensors.GetLockTable()	
+ 	  	set LockTable =  ..Sensors.SensorReading("LockTablePercentFull")
+	} catch {
+		set LockTable = ..#NotAvailible
+	}
+	quit LockTable
 ]]></Implementation>
 </Method>
 
@@ -203,8 +218,14 @@ Create and Initialyse System Sensors after object creation</Description>
 <Internal>1</Internal>
 <ReturnType>%Numeric</ReturnType>
 <Implementation><![CDATA[
-	do ..Sensors.GetCSPGateway()	
-   	quit ..Sensors.SensorReading("CSPGatewayLatency",$o(..Sensors.SensorReading("CSPGatewayLatency","")))
+	
+   	try {
+		do ..Sensors.GetCSPGateway()	
+ 	  	set CSPGatewayLatency = ..Sensors.SensorReading("CSPGatewayLatency",$o(..Sensors.SensorReading("CSPGatewayLatency","")))
+	} catch {
+		set CSPGatewayLatency = ..#NotAvailible
+	}
+	quit CSPGatewayLatency
 ]]></Implementation>
 </Method>
 
@@ -212,8 +233,13 @@ Create and Initialyse System Sensors after object creation</Description>
 <Internal>1</Internal>
 <ReturnType>%Integer</ReturnType>
 <Implementation><![CDATA[
-	do ..Sensors.GetSMH()
-	quit ..Sensors.SensorReading("SMHPercentFull")
+   	try {
+		do ..Sensors.GetSMH()	
+ 	  	set SMH = ..Sensors.SensorReading("SMHPercentFull")
+	} catch {
+		set SMH = ..#NotAvailible
+	}
+	quit SMH
 ]]></Implementation>
 </Method>
 
@@ -221,8 +247,14 @@ Create and Initialyse System Sensors after object creation</Description>
 <Internal>1</Internal>
 <ReturnType>%Numeric</ReturnType>
 <Implementation><![CDATA[
+ 
+	try {
 	do ..Sensors.GetJournalSpace()	
-   	quit ..Sensors.SensorReading("JournalSpace")
+ 	  	set JournalSpace = ..Sensors.SensorReading("JournalSpace")
+	} catch {
+		set JournalSpace = ..#NotAvailible
+	}
+	quit JournalSpace
 ]]></Implementation>
 </Method>
 
