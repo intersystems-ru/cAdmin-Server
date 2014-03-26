@@ -215,7 +215,7 @@ Create and Initialyse System Sensors after object creation</Description>
    		set journaldir = ##class(%SYS.Journal.System).GetPrimaryDirectory()
    		set journalsize = ..GetDirectorySize(journaldir)
    		set journalsizeMB = journalsize / ( 1024 * 1024 )
-   		set FreeJournalSpace = 100 * ( free / (free + journalsizeMB))	
+   		set FreeJournalSpace = $NORMALIZE(100 * ( free / (free + journalsizeMB)),6)	
 	} catch {
 		set FreeJournalSpace = ..#NotAvailible
 	}
