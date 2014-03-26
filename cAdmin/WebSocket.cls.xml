@@ -13,7 +13,7 @@ Web socket class. Manages all comunication with the client.</Description>
 <Parameter name="Timeout">
 <Description>
 How long to wait for user when connection established</Description>
-<Default>120</Default>
+<Default>3600</Default>
 </Parameter>
 
 <Parameter name="AuthorizationTimeout">
@@ -35,7 +35,7 @@ Authenticates user, checks that he has required resource.
 If all goes well, initialises sensors and forwards users' input to Choose Action]]></Description>
 <ReturnType>%Status</ReturnType>
 <Implementation><![CDATA[
-	if ($$$ISOK(..RequireAuthorization() && $$$ISOK(..RequireResource()))) 
+	if ($$$ISOK(..RequireAuthorization()) && $$$ISOK(..RequireResource())) 
 	{		
    		For  
    		{
@@ -283,6 +283,20 @@ Returns random cconsole.log entry every 10 seconds</Description>
 		hang 10
 	}
 	quit $$$OK
+]]></Implementation>
+</Method>
+
+<Method name="WriteString">
+<FormalSpec>str:%String</FormalSpec>
+<Implementation><![CDATA[
+	set buffer = 8192
+	if $length(str)>=buffer
+	{
+		set parts = $length(str) \ buffer
+		do ..Write("{  ""parts"": """_parts_"""}")	
+		hang 1
+	}
+	do ..Write(str)
 ]]></Implementation>
 </Method>
 </Class>
