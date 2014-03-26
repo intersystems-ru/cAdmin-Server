@@ -155,7 +155,7 @@ Example: CPU,LockTable,CSPGatewayLatency]]></Description>
 			}
 			set $list(values,i)=value
 		}
-		set JSON=##class(%ZEN.Auxiliary.jsonProvider).%ArrayToJSON(.sensors,.values)
+		set JSON = ..ArrayToJSON(.sensors,.values)
 	    do ..Write($e(JSON,1,*-1)) // no need to write status
 	}
     quit $$$OK
@@ -166,7 +166,7 @@ Example: CPU,LockTable,CSPGatewayLatency]]></Description>
 <Description>
 Writes Database information in JSON format</Description>
 <ReturnType>%String</ReturnType>
-<Implementation><![CDATA[	do ..Write(..Sensors.DBStats())
+<Implementation><![CDATA[	do ..WriteString(..Sensors.DBStats())
 ]]></Implementation>
 </Method>
 
@@ -186,7 +186,7 @@ Descriptions of methods are in documentation for <b>cAdmin.data.CconsoleLog</b> 
 	if action = "cconsole-fulltextsearch"
 	{
 		set JSON = ##class(cAdmin.data.CconsoleLog).FullTextSearch(params)
-		do ..Write($e(JSON,1,*-1))
+		do ..WriteString($e(JSON,1,*-1))
 	}
 	elseif action = "cconsole-filterdate"
 	{
@@ -202,7 +202,7 @@ Descriptions of methods are in documentation for <b>cAdmin.data.CconsoleLog</b> 
 			set enddatetime = "2199-12-12 23:59:59.999"
 		}
 		set JSON = ##class(cAdmin.data.CconsoleLog).DateTimeSearch(startdatetime,enddatetime)
-		do ..Write($e(JSON,1,*-1))
+		do ..WriteString($e(JSON,1,*-1))
 	}
 	elseif action="cconsole-alert"
 	{
@@ -217,7 +217,7 @@ Descriptions of methods are in documentation for <b>cAdmin.data.CconsoleLog</b> 
 			{
 
 				set JSON = ##class(cAdmin.data.CconsoleLog).GetLast(newlastid-lastid)
-				do ..Write($e(JSON,1,*-1))
+				do ..WriteString($e(JSON,1,*-1))
 				set lastid=newlastid
 			}
 		}
@@ -235,7 +235,7 @@ Various actions with processes.<br>
 <ReturnType>%Status</ReturnType>
 <Implementation><![CDATA[
 	if action="List" {
-		do ..Write(##class(cAdmin.data.Process).ListProcess())
+		do ..WriteString(##class(cAdmin.data.Process).ListProcess())
 	} else {
 		do $CLASSMETHOD("cAdmin.data.Process",action_"Process",id)
 	}
@@ -266,8 +266,9 @@ Various developement tools<br>
 		}
 		set $list(values,i)=value
 	}
-	set JSON=##class(%ZEN.Auxiliary.jsonProvider).%ArrayToJSON(.sensors,.values)
-    do ..Write($e(JSON,1,*-1)) // no need to write status
+	//set JSON=##class(%ZEN.Auxiliary.jsonProvider).%ArrayToJSON(.sensors,.values)
+	set JSON = ..ArrayToJSON(.sensors,.values)
+    do ..WriteString($e(JSON,1,*-1)) // no need to write status
     quit $$$OK
 ]]></Implementation>
 </Method>
@@ -287,16 +288,68 @@ Returns random cconsole.log entry every 10 seconds</Description>
 </Method>
 
 <Method name="WriteString">
-<FormalSpec>str:%String</FormalSpec>
+<FormalSpec>data:%String</FormalSpec>
 <Implementation><![CDATA[
 	set buffer = 8192
-	if $length(str)>=buffer
+	if $length(data)>=buffer
 	{
-		set parts = $length(str) \ buffer
-		do ..Write("{  ""parts"": """_parts_"""}")	
+		set parts = ($length(data) \ buffer) + 1
+		do ..Write("{""parts"" : """_parts_"""}")	
 		hang 1
 	}
-	do ..Write(str)
+	do ..Write(data)
+]]></Implementation>
+</Method>
+
+<Method name="ArrayToJSON">
+<Description><![CDATA[
+Write out the contents of the local array <var>pData</var> as String using JSON notation
+<var>pMetaData</var> is a $List containing the names of the properties
+of the objects in the order in which they will appear.<br/>
+<var>pData</var> is an array containing the data. Each node in the array
+should be a $List containing values for properties. This should match the 
+meta data provided in <var>pMetaData</var>. The array of data can use any subscript
+value its wants. It is possible to define a hierarchical array. In this case,
+children nodes are placed within a parent collection called <var>children</var>.<br/>]]></Description>
+<ClassMethod>1</ClassMethod>
+<FormalSpec><![CDATA[&pMetaData,&pData]]></FormalSpec>
+<ProcedureBlock>0</ProcedureBlock>
+<ReturnType>%String</ReturnType>
+<Implementation><![CDATA[
+	//Create a stream that we will redirect to
+    set str=""
+
+    //Redirect IO to the current routine - makes use of the labels defined below
+    use $io::("^"_$ZNAME)
+
+    //Enable redirection
+    do ##class(%Device).ReDirectIO(1)
+
+    //Any write statements here will be redirected to the labels defined below
+    do ##class(%ZEN.Auxiliary.jsonProvider).%ArrayToJSON(.pMetaData,.pData)
+
+    //Disable redirection
+    do ##class(%Device).ReDirectIO(0)    
+    quit str
+
+    //Labels that allow for IO redirection
+    //Read Character - we don't care about reading
+rchr(c)      quit
+    //Read a string - we don't care about reading
+rstr(sz,to)  quit
+    //Write a character - call the output label
+wchr(s)      do output($char(s))  quit
+    //Write a form feed - call the output label
+wff()        do output($char(12))  quit
+    //Write a newline - call the output label
+wnl()        do output($char(13,10))  quit
+    //Write a string - call the output label
+wstr(s)      do output(s)  quit
+    //Write a tab - call the output label
+wtab(s)      do output($char(9))  quit
+    //Output label - this is where you would handle what you actually want to do.
+    //  in our case, we want to write to myStream
+output(s)    set str=str_s quit
 ]]></Implementation>
 </Method>
 </Class>
