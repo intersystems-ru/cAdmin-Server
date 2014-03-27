@@ -20,14 +20,7 @@ Get a random number</Description>
 Get a random string</Description>
 <ClassMethod>1</ClassMethod>
 <ReturnType>%String</ReturnType>
-<Implementation><![CDATA[
-	set str = ""
-	set length =  $g(^cAdmin("DevTools","RandomStringLength"),"8100")
-	for {
-    	set str = str _ $Char(65 + $Random(25))
-    	quit:$Length(str)>length
-	}
-   	quit str
+<Implementation><![CDATA[   	quit ##class(cAdmin.Utils).GenerateRandomString($g(^cAdmin("DevTools","RandomStringLength"),"100"))
 ]]></Implementation>
 </Method>
 
@@ -42,20 +35,16 @@ Increments number from 0 to 100, then starts from 0</Description>
 ]]></Implementation>
 </Method>
 
-<Method name="IterateProperty">
+<Method name="AddToCconsoleLog">
 <Description>
-Reference. Iterating over object properties</Description>
-<Internal>1</Internal>
+Add random message to cconsole.log</Description>
 <ClassMethod>1</ClassMethod>
+<ReturnType>%String</ReturnType>
 <Implementation><![CDATA[
-	set obj = ##class(%ZEN.proxyObject).%New()
- 
-	set obj.Name="abd"
-	set obj.SurName="xyz"
-	set propName=$o(obj.%data(""))
-	while propName'="" {
-	 set propName=$o(obj.%data(propName))
-	}
+	set message = ##class(cAdmin.Utils).GenerateRandomString($Random(10)+1)
+	set severity = $Random(2)+1
+	do ##class(%SYS.System).WriteToConsoleLog(message,"0",severity)
+	quit "Message added: "_message
 ]]></Implementation>
 </Method>
 </Class>

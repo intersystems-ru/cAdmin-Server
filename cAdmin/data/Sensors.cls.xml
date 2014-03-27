@@ -213,9 +213,9 @@ Create and Initialyse System Sensors after object creation</Description>
 	try {
 		set free = ..JournalSpace
    		set journaldir = ##class(%SYS.Journal.System).GetPrimaryDirectory()
-   		set journalsize = ..GetDirectorySize(journaldir)
+   		set journalsize = ##class(cAdmin.Utils).GetDirectorySize(journaldir)
    		set journalsizeMB = journalsize / ( 1024 * 1024 )
-   		set FreeJournalSpace = 100 * ( free / (free + journalsizeMB))	
+   		set FreeJournalSpace = $NORMALIZE(100 * ( free / (free + journalsizeMB)),6)	
 	} catch {
 		set FreeJournalSpace = ..#NotAvailible
 	}
@@ -299,34 +299,6 @@ Create and Initialyse System Sensors after object creation</Description>
 <Internal>1</Internal>
 <ReturnType>%String</ReturnType>
 <Implementation><![CDATA[	quit $SYSTEM.License.GetKeyInvalidReason()
-]]></Implementation>
-</Method>
-
-<Method name="GetDirectorySize">
-<Description>
-Get directory size in bytes</Description>
-<Internal>1</Internal>
-<ClassMethod>1</ClassMethod>
-<FormalSpec>dir:%String,recursive:%Boolean="1"</FormalSpec>
-<ReturnType>%Numeric</ReturnType>
-<Implementation><![CDATA[
-	set size=0
-	if ##class(%File).DirectoryExists(dir)
-	{
-		set rs=##Class(%ResultSet).%New("%File.FileSet")
- 		do rs.Execute(dir,"*",,1) // build result set of all files in dir
- 		while rs.Next() {
-			if rs.Get("Type")'="D" //check for directories
-			{
-				set size = size + rs.Get("Size")
-			} else {
-				if (recursive=1) {
-					set size = size + ..GetDirectorySize()
-				}
-			} 
-		}
-	}
-	quit size
 ]]></Implementation>
 </Method>
 </Class>

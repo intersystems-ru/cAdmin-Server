@@ -13,7 +13,7 @@ Web socket class. Manages all comunication with the client.</Description>
 <Parameter name="Timeout">
 <Description>
 How long to wait for user when connection established</Description>
-<Default>120</Default>
+<Default>3600</Default>
 </Parameter>
 
 <Parameter name="AuthorizationTimeout">
@@ -28,6 +28,12 @@ Resource name, required to access this websocket</Description>
 <Default>%Developement</Default>
 </Parameter>
 
+<Parameter name="Buffer">
+<Description>
+Buffer size in bytes</Description>
+<Default>8192</Default>
+</Parameter>
+
 <Method name="Server">
 <Description><![CDATA[
 Main method. <br>
@@ -35,7 +41,7 @@ Authenticates user, checks that he has required resource.
 If all goes well, initialises sensors and forwards users' input to Choose Action]]></Description>
 <ReturnType>%Status</ReturnType>
 <Implementation><![CDATA[
-	if ($$$ISOK(..RequireAuthorization() && $$$ISOK(..RequireResource()))) 
+	if ($$$ISOK(..RequireAuthorization()) && $$$ISOK(..RequireResource())) 
 	{		
    		For  
    		{
@@ -155,7 +161,7 @@ Example: CPU,LockTable,CSPGatewayLatency]]></Description>
 			}
 			set $list(values,i)=value
 		}
-		set JSON=##class(%ZEN.Auxiliary.jsonProvider).%ArrayToJSON(.sensors,.values)
+		set JSON = ##class(Utils).ArrayToJSON(.sensors,.values)
 	    do ..Write($e(JSON,1,*-1)) // no need to write status
 	}
     quit $$$OK
@@ -166,7 +172,7 @@ Example: CPU,LockTable,CSPGatewayLatency]]></Description>
 <Description>
 Writes Database information in JSON format</Description>
 <ReturnType>%String</ReturnType>
-<Implementation><![CDATA[	do ..Write(..Sensors.DBStats())
+<Implementation><![CDATA[	do ..WriteString(..Sensors.DBStats())
 ]]></Implementation>
 </Method>
 
@@ -186,7 +192,7 @@ Descriptions of methods are in documentation for <b>cAdmin.data.CconsoleLog</b> 
 	if action = "cconsole-fulltextsearch"
 	{
 		set JSON = ##class(cAdmin.data.CconsoleLog).FullTextSearch(params)
-		do ..Write($e(JSON,1,*-1))
+		do ..WriteString($e(JSON,1,*-1))
 	}
 	elseif action = "cconsole-filterdate"
 	{
@@ -202,7 +208,7 @@ Descriptions of methods are in documentation for <b>cAdmin.data.CconsoleLog</b> 
 			set enddatetime = "2199-12-12 23:59:59.999"
 		}
 		set JSON = ##class(cAdmin.data.CconsoleLog).DateTimeSearch(startdatetime,enddatetime)
-		do ..Write($e(JSON,1,*-1))
+		do ..WriteString($e(JSON,1,*-1))
 	}
 	elseif action="cconsole-alert"
 	{
@@ -217,7 +223,7 @@ Descriptions of methods are in documentation for <b>cAdmin.data.CconsoleLog</b> 
 			{
 
 				set JSON = ##class(cAdmin.data.CconsoleLog).GetLast(newlastid-lastid)
-				do ..Write($e(JSON,1,*-1))
+				do ..WriteString($e(JSON,1,*-1))
 				set lastid=newlastid
 			}
 		}
@@ -235,7 +241,7 @@ Various actions with processes.<br>
 <ReturnType>%Status</ReturnType>
 <Implementation><![CDATA[
 	if action="List" {
-		do ..Write(##class(cAdmin.data.Process).ListProcess())
+		do ..WriteString(##class(cAdmin.data.Process).ListProcess())
 	} else {
 		do $CLASSMETHOD("cAdmin.data.Process",action_"Process",id)
 	}
@@ -246,8 +252,8 @@ Various actions with processes.<br>
 <Method name="DevTools">
 <Description><![CDATA[
 Various developement tools<br>
-<b>args</b> - loop or RandomNumber or Increment]]></Description>
-<FormalSpec>args:%String="RandomNumber,Increment"</FormalSpec>
+<b>args</b> - loop or RandomNumber or Increment or RandomString or AddToCconsoleLog.]]></Description>
+<FormalSpec>args:%String="RandomNumber,Increment,RandomString"</FormalSpec>
 <ReturnType>%Status</ReturnType>
 <Implementation><![CDATA[
 	if args="loop" {
@@ -266,8 +272,9 @@ Various developement tools<br>
 		}
 		set $list(values,i)=value
 	}
-	set JSON=##class(%ZEN.Auxiliary.jsonProvider).%ArrayToJSON(.sensors,.values)
-    do ..Write($e(JSON,1,*-1)) // no need to write status
+	//set JSON=##class(%ZEN.Auxiliary.jsonProvider).%ArrayToJSON(.sensors,.values)
+	set JSON = ##class(Utils).ArrayToJSON(.sensors,.values)
+    do ..WriteString($e(JSON,1,*-1)) // no need to write status
     quit $$$OK
 ]]></Implementation>
 </Method>
@@ -283,6 +290,29 @@ Returns random cconsole.log entry every 10 seconds</Description>
 		hang 10
 	}
 	quit $$$OK
+]]></Implementation>
+</Method>
+
+<Method name="WriteString">
+<Description>
+Wraper of Write method for large strings - 
+longer then Buffer parameter</Description>
+<FormalSpec>data:%String</FormalSpec>
+<Implementation><![CDATA[
+	if $SYSTEM.Version.IsUnicode()
+	{
+		set buffer = ..#Buffer
+	} else {
+		set buffer = ..#Buffer*2
+	}
+	
+	if $length(data)>=buffer
+	{
+		set parts = ($length(data) \ buffer) + 1
+		do ..Write("{""parts"" : """_parts_"""}")	
+		hang 1
+	}
+	do ..Write(data)
 ]]></Implementation>
 </Method>
 </Class>
