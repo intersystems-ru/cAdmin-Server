@@ -28,6 +28,12 @@ Resource name, required to access this websocket</Description>
 <Default>%Developement</Default>
 </Parameter>
 
+<Parameter name="Buffer">
+<Description>
+Buffer size in bytes</Description>
+<Default>8192</Default>
+</Parameter>
+
 <Method name="Server">
 <Description><![CDATA[
 Main method. <br>
@@ -155,7 +161,7 @@ Example: CPU,LockTable,CSPGatewayLatency]]></Description>
 			}
 			set $list(values,i)=value
 		}
-		set JSON = ..ArrayToJSON(.sensors,.values)
+		set JSON = ##class(Utils).ArrayToJSON(.sensors,.values)
 	    do ..Write($e(JSON,1,*-1)) // no need to write status
 	}
     quit $$$OK
@@ -246,8 +252,8 @@ Various actions with processes.<br>
 <Method name="DevTools">
 <Description><![CDATA[
 Various developement tools<br>
-<b>args</b> - loop or RandomNumber or Increment]]></Description>
-<FormalSpec>args:%String="RandomNumber,Increment"</FormalSpec>
+<b>args</b> - loop or RandomNumber or Increment or RandomString or AddToCconsoleLog.]]></Description>
+<FormalSpec>args:%String="RandomNumber,Increment,RandomString"</FormalSpec>
 <ReturnType>%Status</ReturnType>
 <Implementation><![CDATA[
 	if args="loop" {
@@ -267,7 +273,7 @@ Various developement tools<br>
 		set $list(values,i)=value
 	}
 	//set JSON=##class(%ZEN.Auxiliary.jsonProvider).%ArrayToJSON(.sensors,.values)
-	set JSON = ..ArrayToJSON(.sensors,.values)
+	set JSON = ##class(Utils).ArrayToJSON(.sensors,.values)
     do ..WriteString($e(JSON,1,*-1)) // no need to write status
     quit $$$OK
 ]]></Implementation>
@@ -288,9 +294,18 @@ Returns random cconsole.log entry every 10 seconds</Description>
 </Method>
 
 <Method name="WriteString">
+<Description>
+Wraper of Write method for large strings - 
+longer then Buffer parameter</Description>
 <FormalSpec>data:%String</FormalSpec>
 <Implementation><![CDATA[
-	set buffer = 8192
+	if $SYSTEM.Version.IsUnicode()
+	{
+		set buffer = ..#Buffer
+	} else {
+		set buffer = ..#Buffer*2
+	}
+	
 	if $length(data)>=buffer
 	{
 		set parts = ($length(data) \ buffer) + 1
@@ -298,58 +313,6 @@ Returns random cconsole.log entry every 10 seconds</Description>
 		hang 1
 	}
 	do ..Write(data)
-]]></Implementation>
-</Method>
-
-<Method name="ArrayToJSON">
-<Description><![CDATA[
-Write out the contents of the local array <var>pData</var> as String using JSON notation
-<var>pMetaData</var> is a $List containing the names of the properties
-of the objects in the order in which they will appear.<br/>
-<var>pData</var> is an array containing the data. Each node in the array
-should be a $List containing values for properties. This should match the 
-meta data provided in <var>pMetaData</var>. The array of data can use any subscript
-value its wants. It is possible to define a hierarchical array. In this case,
-children nodes are placed within a parent collection called <var>children</var>.<br/>]]></Description>
-<ClassMethod>1</ClassMethod>
-<FormalSpec><![CDATA[&pMetaData,&pData]]></FormalSpec>
-<ProcedureBlock>0</ProcedureBlock>
-<ReturnType>%String</ReturnType>
-<Implementation><![CDATA[
-	//Create a stream that we will redirect to
-    set str=""
-
-    //Redirect IO to the current routine - makes use of the labels defined below
-    use $io::("^"_$ZNAME)
-
-    //Enable redirection
-    do ##class(%Device).ReDirectIO(1)
-
-    //Any write statements here will be redirected to the labels defined below
-    do ##class(%ZEN.Auxiliary.jsonProvider).%ArrayToJSON(.pMetaData,.pData)
-
-    //Disable redirection
-    do ##class(%Device).ReDirectIO(0)    
-    quit str
-
-    //Labels that allow for IO redirection
-    //Read Character - we don't care about reading
-rchr(c)      quit
-    //Read a string - we don't care about reading
-rstr(sz,to)  quit
-    //Write a character - call the output label
-wchr(s)      do output($char(s))  quit
-    //Write a form feed - call the output label
-wff()        do output($char(12))  quit
-    //Write a newline - call the output label
-wnl()        do output($char(13,10))  quit
-    //Write a string - call the output label
-wstr(s)      do output(s)  quit
-    //Write a tab - call the output label
-wtab(s)      do output($char(9))  quit
-    //Output label - this is where you would handle what you actually want to do.
-    //  in our case, we want to write to myStream
-output(s)    set str=str_s quit
 ]]></Implementation>
 </Method>
 </Class>

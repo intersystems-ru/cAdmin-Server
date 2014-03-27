@@ -190,7 +190,7 @@ Add one new record to database</Description>
 
 <Method name="PurgeOverflow">
 <Description><![CDATA[
-Delete first entries if number of Entries>MaxEntries]]></Description>
+Delete first 20% entries if number of Entries>MaxEntries]]></Description>
 <ClassMethod>1</ClassMethod>
 <Implementation><![CDATA[
 	&sql(select top 1 count(id) into :count from cAdmin_data.CconsoleLog)
