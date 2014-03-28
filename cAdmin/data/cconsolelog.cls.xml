@@ -246,7 +246,7 @@ Example: 'alert','max']]></Description>
 <FormalSpec>query:%String</FormalSpec>
 <ReturnType>%String</ReturnType>
 <Implementation><![CDATA[
-	set SQL = "SELECT TOP 10 * FROM cAdmin_data.CconsoleLog WHERE message %CONTAINS ("_query_")"
+	set SQL = "SELECT * FROM cAdmin_data.CconsoleLog WHERE message %CONTAINS ("_query_")"
 	quit ##class(%ZEN.Auxiliary.jsonSQLProvider).%WriteJSONFromSQL(,SQL)
 ]]></Implementation>
 </Method>
@@ -260,7 +260,7 @@ Where startdatetime,enddatetime are TimeStamps - in yyyy-mm-dd hh:mm:ss.fff form
 <ReturnType>%String</ReturnType>
 <Implementation><![CDATA[
 	
-	set SQL = 	"SELECT TOP 10 * FROM cAdmin_data.CconsoleLog WHERE "_
+	set SQL = 	"SELECT * FROM cAdmin_data.CconsoleLog WHERE "_
 				"DateTime BETWEEN {ts '"_startdatetime_"'} AND "_
 				" {ts '"_enddatetime_"'}" 
 	quit ##class(%ZEN.Auxiliary.jsonSQLProvider).%WriteJSONFromSQL(,SQL)
