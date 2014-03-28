@@ -1,0 +1,140 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Export generator="Cache" version="25">
+<Class name="cAdmin.Utils">
+<Description>
+Various utility methods.</Description>
+<Super>%RegisteredObject</Super>
+<TimeCreated>63273,59838.57564</TimeCreated>
+
+<Method name="Init">
+<Description>
+Sets all basic settings in ^cAdmin global</Description>
+<ClassMethod>1</ClassMethod>
+<Implementation><![CDATA[
+	/// Developer Tools
+	set ^cAdmin("DevTools","RandomNumber") = 100 // Range from 0 to Value, from which RandomNumber is selected
+	set ^cAdmin("DevTools","RandomStringLength") = 100 // Length of random string returned by RandomString method
+	set ^cAdmin("DevTools","Increment") = 1 // Starting value for Increment method
+	
+	//Reference only - DO NOT SET manually/uncomment
+	//set ^cAdmin("Cconsole","LastDate")="1"
+	//set ^cAdmin("Cconsole","LastHash")="0"
+	//set ^cAdmin("Cconsole","LastTime")="1.1"
+]]></Implementation>
+</Method>
+
+<Method name="ArrayToJSON">
+<Description><![CDATA[
+Write out the contents of the local array <var>pData</var> as String using JSON notation
+<var>pMetaData</var> is a $List containing the names of the properties
+of the objects in the order in which they will appear.<br/>
+<var>pData</var> is an array containing the data. Each node in the array
+should be a $List containing values for properties. This should match the 
+meta data provided in <var>pMetaData</var>. The array of data can use any subscript
+value its wants. It is possible to define a hierarchical array. In this case,
+children nodes are placed within a parent collection called <var>children</var>.<br/>]]></Description>
+<ClassMethod>1</ClassMethod>
+<FormalSpec><![CDATA[&pMetaData,&pData]]></FormalSpec>
+<ProcedureBlock>0</ProcedureBlock>
+<ReturnType>%String</ReturnType>
+<Implementation><![CDATA[
+	//Create a string that we will redirect to
+    set str=""
+
+    //Redirect IO to the current routine - makes use of the labels defined below
+    use $io::("^"_$ZNAME)
+
+    //Enable redirection
+    do ##class(%Device).ReDirectIO(1)
+
+    //Any write statements here will be redirected to the labels defined below
+    do ##class(%ZEN.Auxiliary.jsonProvider).%ArrayToJSON(.pMetaData,.pData)
+
+    //Disable redirection
+    do ##class(%Device).ReDirectIO(0)    
+    quit str
+
+    //Labels that allow for IO redirection
+    //Read Character - we don't care about reading
+rchr(c)      quit
+    //Read a string - we don't care about reading
+rstr(sz,to)  quit
+    //Write a character - call the output label
+wchr(s)      do output($char(s))  quit
+    //Write a form feed - call the output label
+wff()        do output($char(12))  quit
+    //Write a newline - call the output label
+wnl()        do output($char(13,10))  quit
+    //Write a string - call the output label
+wstr(s)      do output(s)  quit
+    //Write a tab - call the output label
+wtab(s)      do output($char(9))  quit
+    //Output label - this is where we write to str
+output(s)    set str=str_s quit
+]]></Implementation>
+</Method>
+
+<Method name="GetDirectorySize">
+<Description>
+Get directory size in bytes</Description>
+<Internal>1</Internal>
+<ClassMethod>1</ClassMethod>
+<FormalSpec>dir:%String,recursive:%Boolean="1"</FormalSpec>
+<ReturnType>%Numeric</ReturnType>
+<Implementation><![CDATA[
+	set size=0
+	if ##class(%File).DirectoryExists(dir)
+	{
+		set rs=##Class(%ResultSet).%New("%File.FileSet")
+ 		do rs.Execute(dir,"*",,1) // build result set of all files in dir
+ 		while rs.Next() {
+			if rs.Get("Type")'="D" //check for directories
+			{
+				set size = size + rs.Get("Size")
+			} else {
+				if (recursive=1) {
+					set size = size + ..GetDirectorySize()
+				}
+			} 
+		}
+	}
+	quit size
+]]></Implementation>
+</Method>
+
+<Method name="IterateProperty">
+<Description>
+Reference. Iterating over object properties</Description>
+<Internal>1</Internal>
+<ClassMethod>1</ClassMethod>
+<Private>1</Private>
+<Implementation><![CDATA[
+	set obj = ##class(%ZEN.proxyObject).%New()
+ 
+	set obj.Name="abd"
+	set obj.SurName="xyz"
+	set propName=$o(obj.%data(""))
+	while propName'="" {
+	 set propName=$o(obj.%data(propName))
+	}
+]]></Implementation>
+</Method>
+
+<Method name="GenerateRandomString">
+<Description><![CDATA[
+Generate random string of <b>len</b> symbols in length]]></Description>
+<Internal>1</Internal>
+<ClassMethod>1</ClassMethod>
+<FormalSpec>len:%Integer=10</FormalSpec>
+<Private>1</Private>
+<ReturnType>%String</ReturnType>
+<Implementation><![CDATA[
+	set str = ""
+	while $Length(str)<len {
+    	set str = str _ $Char(65 + $Random(25))
+	}
+   	quit str
+]]></Implementation>
+</Method>
+</Class>
+</Export>

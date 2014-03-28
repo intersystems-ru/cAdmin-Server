@@ -1,5 +1,6 @@
 cAdmin
 cAdmin.WebSocket.CLS
+cAdmin.Utils.CLS
 cAdmin.data.CconsoleLog.CLS
 cAdmin.data.Database.CLS
 cAdmin.data.Databases.CLS
