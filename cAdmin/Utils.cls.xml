@@ -126,7 +126,6 @@ Generate random string of <b>len</b> symbols in length]]></Description>
 <Internal>1</Internal>
 <ClassMethod>1</ClassMethod>
 <FormalSpec>len:%Integer=10</FormalSpec>
-<Language>cache</Language>
 <ReturnType>%String</ReturnType>
 <Implementation><![CDATA[
 	set str = ""
