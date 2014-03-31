@@ -53,8 +53,39 @@ children nodes are placed within a parent collection called <var>children</var>.
     //Disable redirection
     do ##class(%Device).ReDirectIO(0)    
     quit str
+]]></Implementation>
+</Method>
 
-    //Labels that allow for IO redirection
+<Method name="SQLToJSON">
+<Description><![CDATA[
+<var>pSQL</var> is the SQL statement that is executed and provides the JSON content.<br/>]]></Description>
+<ClassMethod>1</ClassMethod>
+<FormalSpec>SQL:%String</FormalSpec>
+<ProcedureBlock>0</ProcedureBlock>
+<ReturnType>%String</ReturnType>
+<Implementation><![CDATA[
+	//Create a string that we will redirect to
+    set str=""
+    //Redirect IO to the current routine - makes use of the labels defined below
+    use $io::("^"_$ZNAME)
+
+    //Enable redirection
+    do ##class(%Device).ReDirectIO(1)
+
+    //Any write statements here will be redirected to the labels defined below
+    do ##class(%ZEN.Auxiliary.jsonSQLProvider).%WriteJSONFromSQL(,SQL)
+
+    //Disable redirection
+    do ##class(%Device).ReDirectIO(0)    
+    quit str
+]]></Implementation>
+</Method>
+
+<Method name="Redirect">
+<ClassMethod>1</ClassMethod>
+<ProcedureBlock>0</ProcedureBlock>
+<Implementation><![CDATA[
+	//Labels that allow for IO redirection
     //Read Character - we don't care about reading
 rchr(c)      quit
     //Read a string - we don't care about reading
