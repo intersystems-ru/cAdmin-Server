@@ -308,11 +308,35 @@ longer then Buffer parameter</Description>
 	
 	if $length(data)>=buffer
 	{
-		set parts = ($length(data) \ buffer) + 1
-		do ..Write("{""parts"" : """_parts_"""}")	
+
+		do ..Write("{""parts"" : """_..DetermineParts($length(data))_"""}")	
 		hang 1
 	}
 	do ..Write(data)
+]]></Implementation>
+</Method>
+
+<Method name="DetermineParts">
+<FormalSpec>length:%Integer</FormalSpec>
+<ReturnType>%Integer</ReturnType>
+<Implementation><![CDATA[
+
+	if '$SYSTEM.Version.IsUnicode() 
+	{
+		set length = length/2
+	}
+	
+	if length <= 8188 quit 1
+	if length <= 15868 quit 2
+	if length <= 23548 quit 3
+	if length <= 31228 quit 4
+	if length <= 38908 quit 5
+	if length <= 46588 quit 6
+	if length <= 54268 quit 7
+	
+	//set parts = ($length(data) \ buffer) + 1
+	
+	quit 8
 ]]></Implementation>
 </Method>
 </Class>

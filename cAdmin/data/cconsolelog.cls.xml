@@ -210,7 +210,7 @@ Get last <b>num</b> entries from cconsole.log database]]></Description>
 <ReturnType>%String</ReturnType>
 <Implementation><![CDATA[
 	set SQL = "SELECT TOP "_num_" * FROM cAdmin_data.CconsoleLog ORDER BY id desc"
-	quit ##class(%ZEN.Auxiliary.jsonSQLProvider).%WriteJSONFromSQL(,SQL)
+	quit ##class(cAdmin.Utils).SQLToJSON(SQL)
 ]]></Implementation>
 </Method>
 
@@ -234,7 +234,7 @@ Get random entry from cconsole.log database</Description>
 	set lastid = ##class(cAdmin.data.CconsoleLog).GetLastId()
 	set id= $Random(lastid)+1
 	set SQL = "SELECT * FROM cAdmin_data.CconsoleLog WHERE id = '"_id_"'"
-	quit ##class(%ZEN.Auxiliary.jsonSQLProvider).%WriteJSONFromSQL(,SQL)
+	quit ##class(cAdmin.Utils).SQLToJSON(SQL)
 ]]></Implementation>
 </Method>
 
@@ -246,8 +246,8 @@ Example: 'alert','max']]></Description>
 <FormalSpec>query:%String</FormalSpec>
 <ReturnType>%String</ReturnType>
 <Implementation><![CDATA[
-	set SQL = "SELECT TOP 10 * FROM cAdmin_data.CconsoleLog WHERE message %CONTAINS ("_query_")"
-	quit ##class(%ZEN.Auxiliary.jsonSQLProvider).%WriteJSONFromSQL(,SQL)
+	set SQL = "SELECT * FROM cAdmin_data.CconsoleLog WHERE message %CONTAINS ("_query_")"
+	quit ##class(cAdmin.Utils).SQLToJSON(SQL)
 ]]></Implementation>
 </Method>
 
@@ -260,10 +260,10 @@ Where startdatetime,enddatetime are TimeStamps - in yyyy-mm-dd hh:mm:ss.fff form
 <ReturnType>%String</ReturnType>
 <Implementation><![CDATA[
 	
-	set SQL = 	"SELECT TOP 10 * FROM cAdmin_data.CconsoleLog WHERE "_
+	set SQL = 	"SELECT * FROM cAdmin_data.CconsoleLog WHERE "_
 				"DateTime BETWEEN {ts '"_startdatetime_"'} AND "_
 				" {ts '"_enddatetime_"'}" 
-	quit ##class(%ZEN.Auxiliary.jsonSQLProvider).%WriteJSONFromSQL(,SQL)
+	quit ##class(cAdmin.Utils).SQLToJSON(SQL)
 ]]></Implementation>
 </Method>
 
